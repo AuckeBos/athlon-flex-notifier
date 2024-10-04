@@ -1,0 +1,21 @@
+postgres:
+  image: 'postgres:latest'
+  ports:
+    - 15432:5432
+  env_file:
+    - ../.docker-env
+  volumes:
+    - postgres_data:/var/lib/postgresql/data/
+  networks:
+    - traefik      
+
+pgadmin:
+  image: dpage/pgadmin4:8.11.0
+  env_file:
+    - ../.docker-env  
+  ports:
+    - 12008:80
+  depends_on:
+    - postgres
+  networks:
+    - traefik  
