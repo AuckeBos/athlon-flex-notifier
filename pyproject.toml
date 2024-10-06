@@ -1,10 +1,15 @@
 [project]
-name = "athlon-flex-updater"
+name = "athlon-flex-notifier"
 version = "0.1.0"
 description = "Add your description here"
 dependencies = [
     "requests>=2.32.3",
     "pydantic>=2.9.2",
+    "ruff>=0.6.9",
+    "mongoengine>=0.29.1",
+    "athlon-flex-api>=0.1.4",
+    "python-dotenv>=1.0.1",
+    "dependency-injector>=4.42.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -21,4 +26,4 @@ dev-dependencies = []
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/athlon_flex_updater"]
+packages = ["src/athlon_flex_notifier"]

@@ -1,0 +1,22 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Docker up",
+            "type": "shell",
+            "command": "docker-compose -f infrastructure/docker-compose.yml --env-file ./.docker-env -p athlon  up",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "Lint: Ruff",
+            "type": "shell",
+            "command": "ruff check",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        }
+    ]
+}
