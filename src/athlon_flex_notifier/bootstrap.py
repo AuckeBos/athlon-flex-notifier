@@ -1,6 +1,8 @@
 import os
 
+from athlon_flex_api import AthlonFlexApi
 from dotenv import find_dotenv, load_dotenv
+from kink import di
 
 
 def load_env():
@@ -19,9 +21,11 @@ def setup_mongo_engine():
     )
 
 
-def setup_dependency_injection():
-    from athlon_flex_notifier.di import Container
-
-    container = Container()
-    container.init_resources()
-    container.wire()
+def bootstrap_di():
+    di[AthlonFlexApi] = AthlonFlexApi(
+        email=os.getenv("ATHLON_USERNAME", None),
+        password=os.getenv("ATHLON_PASSWORD", None),
+        gross_yearly_income=os.getenv("GROSS_YEARLY_INCOME", None),
+        apply_loonheffingskorting=os.getenv("APPLY_LOONHEFFINGSKORTING", "true")
+        == "true",
+    )

@@ -20,7 +20,7 @@ annotated-types==0.7.0
     # via pydantic
 async-property==0.2.2
     # via athlon-flex-api
-athlon-flex-api==0.1.4
+athlon-flex-api==0.1.5
     # via athlon-flex-notifier
 attrs==24.2.0
     # via aiohttp
@@ -28,8 +28,6 @@ certifi==2024.8.30
     # via requests
 charset-normalizer==3.3.2
     # via requests
-dependency-injector==4.42.0
-    # via athlon-flex-notifier
 dnspython==2.7.0
     # via pymongo
 frozenlist==1.4.1
@@ -38,6 +36,8 @@ frozenlist==1.4.1
 idna==3.10
     # via requests
     # via yarl
+kink==0.8.0
+    # via athlon-flex-notifier
 mongoengine==0.29.1
     # via athlon-flex-notifier
 multidict==6.1.0
@@ -59,9 +59,8 @@ requests==2.32.3
     # via athlon-flex-notifier
 ruff==0.6.9
     # via athlon-flex-notifier
-six==1.16.0
-    # via dependency-injector
 typing-extensions==4.12.2
+    # via kink
     # via pydantic
     # via pydantic-core
 urllib3==2.2.3

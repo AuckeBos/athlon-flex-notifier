@@ -1,6 +1,8 @@
 # Athlon login
 ATHLON_USERNAME="email@example.com"
 ATHLON_PASSWORD="my_password"
+GROSS_YEARLY_INCOME="100000"
+APPLY_LOONHEFFINGSKORTING="true"
 
 # Mongo
 MONGO_DB="athlon"

@@ -7,9 +7,9 @@ dependencies = [
     "pydantic>=2.9.2",
     "ruff>=0.6.9",
     "mongoengine>=0.29.1",
-    "athlon-flex-api>=0.1.4",
+    "athlon-flex-api>=0.1.5",
     "python-dotenv>=1.0.1",
-    "dependency-injector>=4.42.0",
+    "kink>=0.8.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
