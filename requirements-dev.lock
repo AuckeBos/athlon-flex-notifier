@@ -28,30 +28,29 @@ certifi==2024.8.30
     # via requests
 charset-normalizer==3.3.2
     # via requests
-dnspython==2.7.0
-    # via pymongo
 frozenlist==1.4.1
     # via aiohttp
     # via aiosignal
+greenlet==3.1.1
+    # via sqlalchemy
 idna==3.10
     # via requests
     # via yarl
 kink==0.8.0
-    # via athlon-flex-notifier
-mongoengine==0.29.1
     # via athlon-flex-notifier
 multidict==6.1.0
     # via aiohttp
     # via yarl
 nest-asyncio==1.6.0
     # via athlon-flex-api
+psycopg2==2.9.9
+    # via athlon-flex-notifier
 pydantic==2.9.2
     # via athlon-flex-api
     # via athlon-flex-notifier
+    # via sqlmodel
 pydantic-core==2.23.4
     # via pydantic
-pymongo==4.10.1
-    # via mongoengine
 python-dotenv==1.0.1
     # via athlon-flex-notifier
 requests==2.32.3
@@ -59,10 +58,15 @@ requests==2.32.3
     # via athlon-flex-notifier
 ruff==0.6.9
     # via athlon-flex-notifier
+sqlalchemy==2.0.35
+    # via sqlmodel
+sqlmodel==0.0.22
+    # via athlon-flex-notifier
 typing-extensions==4.12.2
     # via kink
     # via pydantic
     # via pydantic-core
+    # via sqlalchemy
 urllib3==2.2.3
     # via requests
 yarl==1.13.1

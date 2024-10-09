@@ -1,16 +1,26 @@
 services:
-  mongodb:
-    image: mongo:8.0.0
-    container_name: athlon_mongodb
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+  postgres:
+    image: 'postgres:16.4-bullseye'
     ports:
-      - 27017:27017
+      - 15432:5432
+    env_file:
+      - ../.docker-env
     volumes:
-      - data:/data/db
+      - data:/var/lib/postgresql/data/
+    restart: unless-stopped
+
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    env_file:
+      - ../.docker-env  
+    ports:
+      - 12008:80
+    depends_on:
+      - postgres
     restart: unless-stopped
 
 volumes:
   data:
     
+

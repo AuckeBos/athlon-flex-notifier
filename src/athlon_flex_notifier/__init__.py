@@ -1,5 +1,4 @@
-from athlon_flex_notifier.bootstrap import bootstrap_di, load_env, setup_mongo_engine
+from athlon_flex_notifier.bootstrap import bootstrap_di, load_env
 
 load_env()
-setup_mongo_engine()
 bootstrap_di()
