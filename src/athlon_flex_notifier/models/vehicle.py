@@ -3,16 +3,16 @@ from typing import TYPE_CHECKING
 from athlon_flex_api.models.vehicle import Vehicle as VehicleBase
 from kink import inject
 from sqlalchemy import Engine, ForeignKeyConstraint
-from sqlmodel import Field, Relationship, Session, SQLModel
+from sqlmodel import Field, Relationship, Session
 
-from athlon_flex_notifier.helpers import upsert
+from athlon_flex_notifier.models.base_model import BaseModel
 from athlon_flex_notifier.models.option import Option
 
 if TYPE_CHECKING:
     from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
 
 
-class Vehicle(SQLModel, table=True):
+class Vehicle(BaseModel, table=True):
     """Vehicle Cluster model.
 
     A Cluster defines a vehicle make and type. All registered
@@ -38,7 +38,7 @@ class Vehicle(SQLModel, table=True):
     body_type: str | None = None
     emission: float | None = None
     registration_date: str | None = None
-    registered_mileage: int | None = None
+    registered_mileage: float | None = None
     transmission_type: str | None = None
     avg_fuel_consumption: float | None = None
     type_spare_wheel: str | None = None
@@ -112,8 +112,9 @@ class Vehicle(SQLModel, table=True):
                 "expected_fuel_cost_in_euro_per_month": vehicle_base.pricing.expectedFuelCostPerMonthInEuro,
                 "net_cost_in_euro_per_month": vehicle_base.pricing.netCostPerMonthInEuro,
             }
-        vehicle = upsert(model=Vehicle(**data))
+        vehicle = Vehicle(**data).upsert()
         if vehicle_base.options:
             for option_base in vehicle_base.options:
                 Option.from_base(option_base, vehicle)
-        return Session(database).get(Vehicle, vehicle.id)
+        with Session(database) as session:
+            return session.get(Vehicle, vehicle.id)

@@ -1,15 +1,15 @@
 from typing import TYPE_CHECKING
 
 from athlon_flex_api.models.vehicle import Vehicle as VehicleBase
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship
 
-from athlon_flex_notifier.helpers import upsert
+from athlon_flex_notifier.models.base_model import BaseModel
 
 if TYPE_CHECKING:
     from athlon_flex_notifier.models.vehicle import Vehicle
 
 
-class Option(SQLModel, table=True):
+class Option(BaseModel, table=True):
     id: str = Field(primary_key=True)
     externalId: str
     optionName: str
@@ -25,4 +25,4 @@ class Option(SQLModel, table=True):
             "included": option_base.included,
             "vehicle_id": vehicle.id,
         }
-        return upsert(model=Option(**data))
+        return Option(**data).upsert()

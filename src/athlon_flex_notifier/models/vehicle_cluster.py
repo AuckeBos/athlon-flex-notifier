@@ -1,13 +1,13 @@
 from athlon_flex_api.models.vehicle_cluster import VehicleCluster as VehicleClusterBase
 from kink import inject
 from sqlalchemy import Engine
-from sqlmodel import Field, Relationship, Session, SQLModel
+from sqlmodel import Field, Relationship, Session
 
-from athlon_flex_notifier.helpers import upsert
+from athlon_flex_notifier.models.base_model import BaseModel
 from athlon_flex_notifier.models.vehicle import Vehicle
 
 
-class VehicleCluster(SQLModel, table=True):
+class VehicleCluster(BaseModel, table=True):
     """Vehicle Cluster model.
 
     A Cluster defines a vehicle make and type. All registered
@@ -53,12 +53,11 @@ class VehicleCluster(SQLModel, table=True):
             "max_co2_emission": vehicle_cluster_base.maxCO2Emission,
             "image_uri": vehicle_cluster_base.imageUri,
         }
-        vehicle_cluster: VehicleCluster = upsert(
-            model=VehicleCluster(**data), business_keys=["make", "model"]
-        )
+        vehicle_cluster = VehicleCluster(**data).upsert()
         if vehicle_cluster_base.vehicles:
             for vehicle_base in vehicle_cluster_base.vehicles:
                 Vehicle.from_base(vehicle_base, vehicle_cluster)
-        return Session(database).get(
-            VehicleCluster, (vehicle_cluster.make, vehicle_cluster.model)
-        )
+        with Session(database) as session:
+            return session.get(
+                VehicleCluster, (vehicle_cluster.make, vehicle_cluster.model)
+            )
