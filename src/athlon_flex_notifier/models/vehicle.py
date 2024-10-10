@@ -2,13 +2,13 @@ from typing import TYPE_CHECKING
 
 from athlon_flex_api.models.vehicle import Vehicle as VehicleBase
 from kink import inject
-from sqlalchemy import Engine
-from sqlmodel import Field, Relationship, SQLModel
+from sqlalchemy import Engine, ForeignKeyConstraint
+from sqlmodel import Field, Relationship, Session, SQLModel
 
 from athlon_flex_notifier.helpers import upsert
+from athlon_flex_notifier.models.option import Option
 
 if TYPE_CHECKING:
-    from athlon_flex_notifier.models.option import Option
     from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
 
 
@@ -20,9 +20,6 @@ class Vehicle(SQLModel, table=True):
     """
 
     id: str = Field(primary_key=True)
-    vehicle_cluster_id: int | None = Field(
-        default=None, foreign_key="vehicle_cluster.id"
-    )
     make: str
     model: str
     type: str
@@ -55,13 +52,17 @@ class Vehicle(SQLModel, table=True):
     net_cost_in_euro_per_month: float | None = None
     vehicle_cluster: "VehicleCluster" = Relationship(
         back_populates="vehicles",
-        sa_relationship_kwargs={"lazy": "joined"},
+        sa_relationship_kwargs={
+            "lazy": "joined",
+        },
     )
-    # options: list["Option"] = Relationship(
-    #     back_populates="vehicles",
-    #     link_model=VehicleOption,
-    #     cascade_delete=False,
-    # )
+    options: list[Option] = Relationship(back_populates="vehicle")
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["make", "model"], ["vehicle_cluster.make", "vehicle_cluster.model"]
+        ),
+    )
 
     @classmethod
     @inject
@@ -71,9 +72,6 @@ class Vehicle(SQLModel, table=True):
         vehicle_cluster: "VehicleCluster",
         database: Engine,
     ) -> "Vehicle":
-        # options = [
-        #     Option.from_base(option_base) for option_base in vehicle_base.options
-        # ]
         data = {
             "id": vehicle_base.id,
             "make": vehicle_base.make,
@@ -88,9 +86,7 @@ class Vehicle(SQLModel, table=True):
             "external_type_id": vehicle_base.externalTypeId,
             "image_uri": vehicle_base.imageUri,
             "is_electric": vehicle_base.isElectric,
-            # "vehicle_cluster_id": vehicle_cluster.id,
             "vehicle_cluster": vehicle_cluster,
-            # ":options=options,
         }
         if vehicle_base.details is not None:
             data = data | {
@@ -116,6 +112,8 @@ class Vehicle(SQLModel, table=True):
                 "expected_fuel_cost_in_euro_per_month": vehicle_base.pricing.expectedFuelCostPerMonthInEuro,
                 "net_cost_in_euro_per_month": vehicle_base.pricing.netCostPerMonthInEuro,
             }
-        vehicle = Vehicle(**data)
-        vehicle = upsert(model=vehicle)
-        return vehicle
+        vehicle = upsert(model=Vehicle(**data))
+        if vehicle_base.options:
+            for option_base in vehicle_base.options:
+                Option.from_base(option_base, vehicle)
+        return Session(database).get(Vehicle, vehicle.id)

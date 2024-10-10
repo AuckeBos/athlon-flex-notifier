@@ -8,7 +8,7 @@ from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
 @inject
 def main(api: AthlonFlexApi):
     response: VehicleClusters = api.vehicle_clusters(
-        detail_level=DetailLevel.INCLUDE_VEHICLES
+        detail_level=DetailLevel.INCLUDE_VEHICLE_DETAILS
     )
     for base in response.vehicle_clusters:
         cluster = VehicleCluster.from_base(base)

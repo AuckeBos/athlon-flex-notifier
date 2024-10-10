@@ -15,11 +15,10 @@ class VehicleCluster(SQLModel, table=True):
     """
 
     __tablename__ = "vehicle_cluster"
-    id: int | None = Field(primary_key=True, default=None)
     first_vehicle_id: str
     external_type_id: str
-    make: str
-    model: str
+    make: str = Field(primary_key=True)
+    model: str = Field(primary_key=True)
     latest_model_year: int
     vehicle_count: int
     min_price_in_euro_per_month: float
@@ -40,25 +39,26 @@ class VehicleCluster(SQLModel, table=True):
     def from_base(
         cls, vehicle_cluster_base: VehicleClusterBase, database: Engine
     ) -> "VehicleCluster":
-        vehicle_cluster = VehicleCluster(
-            first_vehicle_id=vehicle_cluster_base.firstVehicleId,
-            external_type_id=vehicle_cluster_base.externalTypeId,
-            make=vehicle_cluster_base.make,
-            model=vehicle_cluster_base.model,
-            latest_model_year=vehicle_cluster_base.latestModelYear,
-            vehicle_count=vehicle_cluster_base.vehicleCount,
-            min_price_in_euro_per_month=vehicle_cluster_base.minPriceInEuroPerMonth,
-            fiscal_value_in_euro=vehicle_cluster_base.fiscalValueInEuro,
-            addition_percentage=vehicle_cluster_base.additionPercentage,
-            external_fuel_type_id=vehicle_cluster_base.externalFuelTypeId,
-            max_co2_emission=vehicle_cluster_base.maxCO2Emission,
-            image_uri=vehicle_cluster_base.imageUri,
-        )
+        data = {
+            "first_vehicle_id": vehicle_cluster_base.firstVehicleId,
+            "external_type_id": vehicle_cluster_base.externalTypeId,
+            "make": vehicle_cluster_base.make,
+            "model": vehicle_cluster_base.model,
+            "latest_model_year": vehicle_cluster_base.latestModelYear,
+            "vehicle_count": vehicle_cluster_base.vehicleCount,
+            "min_price_in_euro_per_month": vehicle_cluster_base.minPriceInEuroPerMonth,
+            "fiscal_value_in_euro": vehicle_cluster_base.fiscalValueInEuro,
+            "addition_percentage": vehicle_cluster_base.additionPercentage,
+            "external_fuel_type_id": vehicle_cluster_base.externalFuelTypeId,
+            "max_co2_emission": vehicle_cluster_base.maxCO2Emission,
+            "image_uri": vehicle_cluster_base.imageUri,
+        }
         vehicle_cluster: VehicleCluster = upsert(
-            model=vehicle_cluster, business_keys=["make", "model"]
+            model=VehicleCluster(**data), business_keys=["make", "model"]
         )
-        if vehicle_cluster_base.vehicles is None:
-            return vehicle_cluster
-        for vehicle_base in vehicle_cluster_base.vehicles:
-            Vehicle.from_base(vehicle_base, vehicle_cluster)
-        return Session(database).get(VehicleCluster, vehicle_cluster.id)
+        if vehicle_cluster_base.vehicles:
+            for vehicle_base in vehicle_cluster_base.vehicles:
+                Vehicle.from_base(vehicle_base, vehicle_cluster)
+        return Session(database).get(
+            VehicleCluster, (vehicle_cluster.make, vehicle_cluster.model)
+        )
