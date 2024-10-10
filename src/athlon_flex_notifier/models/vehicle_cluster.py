@@ -1,9 +1,9 @@
 from athlon_flex_api.models.vehicle_cluster import VehicleCluster as VehicleClusterBase
 from kink import inject
 from sqlalchemy import Engine
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, Session, SQLModel
 
-from athlon_flex_notifier.helpers import update_model
+from athlon_flex_notifier.helpers import upsert
 from athlon_flex_notifier.models.vehicle import Vehicle
 
 
@@ -29,14 +29,17 @@ class VehicleCluster(SQLModel, table=True):
     max_co2_emission: int
     image_uri: str
 
-    # vehicles: list["Vehicle"] | None = Relationship(
-    #     back_populates="vehicle_cluster",
-    #     cascade_delete=True,
-    # )
+    vehicles: list["Vehicle"] | None = Relationship(
+        back_populates="vehicle_cluster",
+        cascade_delete=True,
+        sa_relationship_kwargs={"lazy": "joined"},
+    )
 
     @classmethod
     @inject
-    def from_base(cls, vehicle_cluster_base: VehicleClusterBase, database: Engine):
+    def from_base(
+        cls, vehicle_cluster_base: VehicleClusterBase, database: Engine
+    ) -> "VehicleCluster":
         vehicle_cluster = VehicleCluster(
             first_vehicle_id=vehicle_cluster_base.firstVehicleId,
             external_type_id=vehicle_cluster_base.externalTypeId,
@@ -51,18 +54,11 @@ class VehicleCluster(SQLModel, table=True):
             max_co2_emission=vehicle_cluster_base.maxCO2Emission,
             image_uri=vehicle_cluster_base.imageUri,
         )
-        model, session = update_model(
+        vehicle_cluster: VehicleCluster = upsert(
             model=vehicle_cluster, business_keys=["make", "model"]
         )
-        # todo: correctly update vehicles for this cluster
-
         if vehicle_cluster_base.vehicles is None:
             return vehicle_cluster
-
-        vehicles = [
+        for vehicle_base in vehicle_cluster_base.vehicles:
             Vehicle.from_base(vehicle_base, vehicle_cluster)
-            for vehicle_base in vehicle_cluster_base.vehicles
-        ]
-        vehicle_cluster.vehicles = vehicles
-
-        return vehicle_cluster
+        return Session(database).get(VehicleCluster, vehicle_cluster.id)

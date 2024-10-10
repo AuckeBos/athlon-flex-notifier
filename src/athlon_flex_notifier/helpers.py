@@ -12,18 +12,16 @@ def _primary_keys(model: T) -> list[str]:
     return [
         name
         for name, field in model.__fields__.items()
-        if getattr(field, "primary_key", False)
+        if getattr(field, "primary_key", False) == True
     ]
 
 
 # Todo: Move to ModelUpdater Service
 # Todo: Document
 @inject
-def update_model(
-    *, model: T, business_keys: list[str] = None, database: Engine
-) -> tuple[T, Session]:
+def upsert(*, model: T, business_keys: list[str] = None, database: Engine) -> T:
     keys = business_keys or _primary_keys(model)
-    with Session(database) as session:
+    with Session(database, expire_on_commit=False) as session:
         query = reduce(
             lambda query, key: query.where(
                 getattr(model, key) == getattr(model.__class__, key)
@@ -35,13 +33,13 @@ def update_model(
             model = _update_fields(existing_model[0], model)
         session.add(model)
         session.commit()
-    return model, Session
+    return model
 
 
 def _update_fields(existing_model: T, new_model: T) -> T:
     primary_keys = _primary_keys(new_model)
-    for name, field in new_model.__fields__.items():
-        if name in primary_keys:
+    for key, value in existing_model.model_dump().items():
+        if key in primary_keys:
             continue
-        setattr(existing_model, name, getattr(new_model, name))
+        setattr(existing_model, key, value)
     return existing_model

@@ -3,7 +3,9 @@ from typing import TYPE_CHECKING
 from athlon_flex_api.models.vehicle import Vehicle as VehicleBase
 from kink import inject
 from sqlalchemy import Engine
-from sqlmodel import Field, Session, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
+
+from athlon_flex_notifier.helpers import upsert
 
 if TYPE_CHECKING:
     from athlon_flex_notifier.models.option import Option
@@ -51,9 +53,10 @@ class Vehicle(SQLModel, table=True):
     contribution_in_euro: float | None = None
     expected_fuel_cost_in_euro_per_month: float | None = None
     net_cost_in_euro_per_month: float | None = None
-    # vehicle_cluster: "VehicleCluster" = Relationship(
-    #     back_populates="vehicle_cluster",
-    # )
+    vehicle_cluster: "VehicleCluster" = Relationship(
+        back_populates="vehicles",
+        sa_relationship_kwargs={"lazy": "joined"},
+    )
     # options: list["Option"] = Relationship(
     #     back_populates="vehicles",
     #     link_model=VehicleOption,
@@ -85,8 +88,8 @@ class Vehicle(SQLModel, table=True):
             "external_type_id": vehicle_base.externalTypeId,
             "image_uri": vehicle_base.imageUri,
             "is_electric": vehicle_base.isElectric,
-            "vehicle_cluster_id": vehicle_cluster.id,
-            # ":vehicle_cluster=vehicle_cluster,
+            # "vehicle_cluster_id": vehicle_cluster.id,
+            "vehicle_cluster": vehicle_cluster,
             # ":options=options,
         }
         if vehicle_base.details is not None:
@@ -114,7 +117,5 @@ class Vehicle(SQLModel, table=True):
                 "net_cost_in_euro_per_month": vehicle_base.pricing.netCostPerMonthInEuro,
             }
         vehicle = Vehicle(**data)
-        with Session(database) as session:
-            session.add(vehicle)
-            session.commit()
+        vehicle = upsert(model=vehicle)
         return vehicle

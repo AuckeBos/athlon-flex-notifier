@@ -8,14 +8,11 @@ from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
 @inject
 def main(api: AthlonFlexApi):
     response: VehicleClusters = api.vehicle_clusters(
-        detail_level=DetailLevel.CLUSTER_ONLY
+        detail_level=DetailLevel.INCLUDE_VEHICLES
     )
-    vehicle_clusters = [
-        VehicleCluster.from_base(vehicle_cluster)
-        for vehicle_cluster in response.vehicle_clusters
-    ]
-    # convert to document base class, and save in db
-    print(vehicle_clusters)
+    for base in response.vehicle_clusters:
+        cluster = VehicleCluster.from_base(base)
+        print(cluster)
 
 
 if __name__ == "__main__":
