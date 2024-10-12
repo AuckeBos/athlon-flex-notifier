@@ -10,6 +10,11 @@ if TYPE_CHECKING:
 
 
 class Option(BaseModel, table=True):
+    """Vehicle option.
+
+    Example: Trekhaak.
+    """
+
     id: str = Field(primary_key=True)
     externalId: str
     optionName: str
@@ -17,7 +22,9 @@ class Option(BaseModel, table=True):
     vehicle_id: str = Field(primary_key=True, foreign_key="vehicle.id")
     vehicle: "Vehicle" = Relationship(back_populates="options")
 
+    @staticmethod
     def from_base(option_base: VehicleBase.Option, vehicle: "Vehicle") -> "Option":
+        """Create a SQLModel instance from an API option, and upsert it."""
         data = {
             "id": option_base.id,
             "externalId": option_base.externalId,

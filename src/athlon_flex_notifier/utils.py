@@ -1,3 +1,5 @@
+"""General utility functions."""
+
 from datetime import datetime
 
 from pytz import timezone

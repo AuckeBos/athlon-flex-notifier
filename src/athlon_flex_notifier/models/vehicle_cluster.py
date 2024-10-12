@@ -49,6 +49,7 @@ class VehicleCluster(BaseModel, table=True):
     def from_base(
         cls, vehicle_cluster_base: VehicleClusterBase, database: Engine
     ) -> "VehicleCluster":
+        """Create a SQLModel instance from an API option, and upsert it."""
         data = {
             "first_vehicle_id": vehicle_cluster_base.firstVehicleId,
             "external_type_id": vehicle_cluster_base.externalTypeId,
@@ -78,6 +79,7 @@ class VehicleCluster(BaseModel, table=True):
 
     @property
     def unnotified_availabilities(self) -> list["VehicleAvailability"]:
+        """All active availabilities that are not notified yet."""
         return [
             availability
             for availability in self.vehicle_availabilities
@@ -86,6 +88,7 @@ class VehicleCluster(BaseModel, table=True):
 
     @property
     def should_notify(self) -> bool:
+        """Notify about a cluster if at least one availability is not notified."""
         return len(self.unnotified_availabilities) > 0
 
     def __str__(self) -> str:

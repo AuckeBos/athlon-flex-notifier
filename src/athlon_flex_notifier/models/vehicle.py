@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Optional
 
 from athlon_flex_api.models.vehicle import Vehicle as VehicleBase
 from kink import inject
@@ -14,13 +14,14 @@ if TYPE_CHECKING:
 
 
 class Vehicle(BaseModel, table=True):
-    """Vehicle Cluster model.
+    """Vehicle model.
 
-    A Cluster defines a vehicle make and type. All registered
-    cars belong to the cluster of its make and type.
+    A Vehicle defines a specific vehicle configuration.
+    For example one instance of the Opel Corsa E. It belongs to the VehicleCluster
+    of its make and type.
     """
 
-    model_config = {"protected_namespaces": ()}
+    model_config: ClassVar[dict[str, Any]] = {"protected_namespaces": ()}
 
     id: str = Field(primary_key=True)
     make: str
@@ -81,6 +82,7 @@ class Vehicle(BaseModel, table=True):
         vehicle_cluster: "VehicleCluster",
         database: Engine,
     ) -> "Vehicle":
+        """Create a SQLModel instance from an API option, and upsert it."""
         data = {
             "id": vehicle_base.id,
             "make": vehicle_base.make,
@@ -130,15 +132,19 @@ class Vehicle(BaseModel, table=True):
 
     @property
     def active_availability(self) -> Optional["VehicleAvailability"]:
+        """Return the single active availability for this vehicle.
+
+        If no availability is active, return None.
+        If more than one availability is active, raise ValueError.
+        """
         availabilities = [
             availability
             for availability in self.vehicle_availabilities
             if availability.is_currently_available
         ]
         if len(availabilities) > 1:
-            raise ValueError(
-                "There is more than one active availability for this vehicle"
-            )
+            msg = "There is more than one active availability for this vehicle"
+            raise ValueError(msg)
         return availabilities[0] if availabilities else None
 
     @property
@@ -146,4 +152,4 @@ class Vehicle(BaseModel, table=True):
         return self.active_availability is not None
 
     def __str__(self) -> str:
-        return f"{self.make} {self.model} {self.color} ({self.model_year})"
+        return f"{self.make} {self.model} {self.color} {self.model_year}"

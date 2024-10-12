@@ -1,3 +1,5 @@
+"""Bootstrap the application, mainly setting up DI."""
+
 import logging
 import os
 from logging import Logger
@@ -12,11 +14,13 @@ from athlon_flex_notifier.notifications.console_notifier import ConsoleNotifier
 from athlon_flex_notifier.notifications.notifier import Notifier
 
 
-def load_env():
+def load_env() -> None:
+    """Load environment variables from .env file."""
     load_dotenv(find_dotenv())
 
 
-def bootstrap_di():
+def bootstrap_di() -> None:
+    """Setup all dependencies."""  # noqa: D401
     di[AthlonFlexApi] = AthlonFlexApi(
         email=os.getenv("ATHLON_USERNAME", None),
         password=os.getenv("ATHLON_PASSWORD", None),
@@ -30,6 +34,7 @@ def bootstrap_di():
 
 
 def _setup_database():
+    """Setup database connection."""  # noqa: D401
     di["database"] = create_engine(
         "postgresql://{username}:{password}@{host}:{port}/{database}".format(
             username=os.getenv("POSTGRES_USER"),
@@ -45,6 +50,7 @@ def _setup_database():
 
 
 def _setup_logger() -> Logger:
+    """Configure logger."""
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
     log_format = logging.Formatter(

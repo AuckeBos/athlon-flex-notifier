@@ -10,6 +10,12 @@ from athlon_flex_notifier.utils import now
 
 
 class VehicleAvailability(BaseModel, table=True):
+    """A model indicating what vehicles are available.
+
+    One Vehicle can have multiple rows in this table.
+    This happens becomes available, is leased, and later becomes available again.
+    """
+
     __tablename__ = "vehicle_availability"
 
     id: int | None = Field(primary_key=True, default=None)
@@ -45,6 +51,7 @@ class VehicleAvailability(BaseModel, table=True):
 
     @staticmethod
     def from_vehicle(vehicle: Vehicle) -> "VehicleAvailability":
+        """Create a SQLModel instance from an API vehicle, and upsert it."""
         return VehicleAvailability(
             make=vehicle.make,
             model=vehicle.model,
@@ -61,4 +68,4 @@ class VehicleAvailability(BaseModel, table=True):
         self.upsert()
 
     def __str__(self) -> str:
-        return f"{self.vehicle!s} (available since {self.available_since})"
+        return f"{self.vehicle!s} - available since {self.available_since}"

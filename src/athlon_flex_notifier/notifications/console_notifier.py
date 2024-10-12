@@ -2,6 +2,8 @@ from athlon_flex_notifier.notifications.notifier import Notifier
 
 
 class ConsoleNotifier(Notifier):
+    """Notify by printing to the console."""
+
     def notify(self) -> bool:
         if not self.vehicle_clusters:
             return True

@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class Notifier(ABC):
+    """A class to notify the user of new vehicles."""
+
     logger: Logger
 
     @inject
@@ -22,6 +24,7 @@ class Notifier(ABC):
 
     @property
     def vehicle_clusters(self) -> list[VehicleCluster]:
+        """All clusters with at least one unnotified availability."""
         return [cluster for cluster in VehicleCluster.all() if cluster.should_notify]
 
     def mark_as_notified(self, subject: "VehicleAvailability") -> None:
