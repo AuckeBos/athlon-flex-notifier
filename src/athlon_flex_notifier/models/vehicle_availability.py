@@ -23,8 +23,14 @@ class VehicleAvailability(BaseModel, table=True):
         sa_relationship_kwargs={
             "lazy": "joined",
         },
+        back_populates="vehicle_availabilities",
     )
-    vehicle: "Vehicle" = Relationship(back_populates="vehicle_availabilities")
+    vehicle: "Vehicle" = Relationship(
+        back_populates="vehicle_availabilities",
+        sa_relationship_kwargs={
+            "lazy": "joined",
+        },
+    )
     __table_args__ = (
         ForeignKeyConstraint(
             ["make", "model"], ["vehicle_cluster.make", "vehicle_cluster.model"]
@@ -49,3 +55,10 @@ class VehicleAvailability(BaseModel, table=True):
     def deactivate(self) -> None:
         self.available_until = now()
         self.upsert()
+
+    def mark_as_notified(self) -> None:
+        self.notified = True
+        self.upsert()
+
+    def __str__(self) -> str:
+        return f"{self.vehicle!s} (available since {self.available_since})"

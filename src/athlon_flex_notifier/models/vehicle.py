@@ -144,3 +144,6 @@ class Vehicle(BaseModel, table=True):
     @property
     def has_active_availability(self) -> bool:
         return self.active_availability is not None
+
+    def __str__(self) -> str:
+        return f"{self.make} {self.model} {self.color} ({self.model_year})"

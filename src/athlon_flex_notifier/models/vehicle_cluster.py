@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from athlon_flex_api.models.vehicle_cluster import VehicleCluster as VehicleClusterBase
 from kink import inject
 from sqlalchemy import Engine
@@ -5,6 +7,9 @@ from sqlmodel import Field, Relationship, Session
 
 from athlon_flex_notifier.models.base_model import BaseModel
 from athlon_flex_notifier.models.vehicle import Vehicle
+
+if TYPE_CHECKING:
+    from athlon_flex_notifier.models.vehicle_availability import VehicleAvailability
 
 
 class VehicleCluster(BaseModel, table=True):
@@ -31,6 +36,11 @@ class VehicleCluster(BaseModel, table=True):
     vehicles: list["Vehicle"] | None = Relationship(
         back_populates="vehicle_cluster",
         cascade_delete=True,
+        sa_relationship_kwargs={"lazy": "joined"},
+    )
+    vehicle_availabilities: list["VehicleAvailability"] | None = Relationship(
+        back_populates="vehicle_cluster",
+        cascade_delete=False,
         sa_relationship_kwargs={"lazy": "joined"},
     )
 
@@ -61,3 +71,22 @@ class VehicleCluster(BaseModel, table=True):
             return session.get(
                 VehicleCluster, (vehicle_cluster.make, vehicle_cluster.model)
             )
+
+    @property
+    def is_available(self) -> bool:
+        return len(self.vehicle_availabilities) > 0
+
+    @property
+    def unnotified_availabilities(self) -> list["VehicleAvailability"]:
+        return [
+            availability
+            for availability in self.vehicle_availabilities
+            if not availability.notified and availability.is_currently_available
+        ]
+
+    @property
+    def should_notify(self) -> bool:
+        return len(self.unnotified_availabilities) > 0
+
+    def __str__(self) -> str:
+        return f"{self.make} {self.model}"

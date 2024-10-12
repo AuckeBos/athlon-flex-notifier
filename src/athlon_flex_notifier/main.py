@@ -5,6 +5,7 @@ from sqlalchemy import Engine
 
 from athlon_flex_notifier.models.vehicle_availability import VehicleAvailability
 from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
+from athlon_flex_notifier.notifications.notifier import Notifier
 
 
 @inject
@@ -34,10 +35,12 @@ def create_vehicle_availability(
         availability.deactivate()
 
 
-def main():
-    clusters = load_data()
-
+@inject
+def main(notifier: Notifier):
+    # clusters = load_data()
+    clusters = VehicleCluster.all()
     create_vehicle_availability(clusters)
+    notifier.notify()
 
 
 if __name__ == "__main__":
