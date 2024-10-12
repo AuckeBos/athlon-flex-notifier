@@ -46,15 +46,7 @@ class BaseModel(SQLModel):
             if existing_model := self._get_existing_model_based_on_business_keys(
                 session
             ):
-                model = existing_model._update_fields(self)
+                model = existing_model.sqlmodel_update(self)
             session.add(model)
             session.commit()
         return model
-
-    def _update_fields(self, new_model: "BaseModel"):
-        primary_keys = self._primary_keys
-        for key, value in new_model.model_dump().items():
-            if key in primary_keys:
-                continue
-            setattr(self, key, value)
-        return self

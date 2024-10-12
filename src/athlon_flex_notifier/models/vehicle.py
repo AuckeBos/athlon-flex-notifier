@@ -19,6 +19,8 @@ class Vehicle(BaseModel, table=True):
     cars belong to the cluster of its make and type.
     """
 
+    model_config = {"protected_namespaces": ()}
+
     id: str = Field(primary_key=True)
     make: str
     model: str
