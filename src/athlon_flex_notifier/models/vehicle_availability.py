@@ -1,0 +1,51 @@
+from datetime import datetime, timezone
+
+from sqlalchemy import ForeignKeyConstraint
+from sqlmodel import Field, Relationship
+
+from athlon_flex_notifier.models.base_model import BaseModel
+from athlon_flex_notifier.models.vehicle import Vehicle
+from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
+from athlon_flex_notifier.utils import now
+
+
+class VehicleAvailability(BaseModel, table=True):
+    __tablename__ = "vehicle_availability"
+
+    id: int | None = Field(primary_key=True, default=None)
+    make: str
+    model: str
+    vehicle_id: str = Field(foreign_key="vehicle.id")
+    available_since: datetime
+    available_until: datetime | None = None
+    notified: bool = False
+    vehicle_cluster: VehicleCluster = Relationship(
+        sa_relationship_kwargs={
+            "lazy": "joined",
+        },
+    )
+    vehicle: "Vehicle" = Relationship(back_populates="vehicle_availabilities")
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["make", "model"], ["vehicle_cluster.make", "vehicle_cluster.model"]
+        ),
+    )
+
+    @property
+    def is_currently_available(self) -> bool:
+        return self.available_until is None or now() < self.available_until.astimezone(
+            timezone.utc
+        )
+
+    @staticmethod
+    def from_vehicle(vehicle: Vehicle) -> "VehicleAvailability":
+        return VehicleAvailability(
+            make=vehicle.make,
+            model=vehicle.model,
+            vehicle_id=vehicle.id,
+            available_since=now(),
+        ).upsert()
+
+    def deactivate(self) -> None:
+        self.available_until = now()
+        self.upsert()

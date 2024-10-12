@@ -9,6 +9,24 @@ T = TypeVar("T", bound="BaseModel")
 
 
 class BaseModel(SQLModel):
+    @inject
+    def upsert(self: T, database: Engine) -> T:
+        model = self
+        with Session(database, expire_on_commit=False) as session:
+            if existing_model := self._get_existing_model_based_on_business_keys(
+                session
+            ):
+                model = existing_model.sqlmodel_update(self)
+            session.add(model)
+            session.commit()
+        return model
+
+    @classmethod
+    @inject
+    def all(cls, database: Engine) -> list[T]:
+        with Session(database) as session:
+            return [item[0] for item in session.exec(select(cls)).unique().all()]
+
     @cached_property
     def _primary_keys(self) -> list[str]:
         """Find the primary keys, based on field properties"""
@@ -38,15 +56,3 @@ class BaseModel(SQLModel):
         if result := session.exec(query).first():
             return result[0]
         return None
-
-    @inject
-    def upsert(self: T, database: Engine) -> T:
-        model = self
-        with Session(database, expire_on_commit=False) as session:
-            if existing_model := self._get_existing_model_based_on_business_keys(
-                session
-            ):
-                model = existing_model.sqlmodel_update(self)
-            session.add(model)
-            session.commit()
-        return model

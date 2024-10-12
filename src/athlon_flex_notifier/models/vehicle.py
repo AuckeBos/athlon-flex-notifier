@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from athlon_flex_api.models.vehicle import Vehicle as VehicleBase
 from kink import inject
@@ -9,6 +9,7 @@ from athlon_flex_notifier.models.base_model import BaseModel
 from athlon_flex_notifier.models.option import Option
 
 if TYPE_CHECKING:
+    from athlon_flex_notifier.models.vehicle_availability import VehicleAvailability
     from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
 
 
@@ -59,6 +60,12 @@ class Vehicle(BaseModel, table=True):
         },
     )
     options: list[Option] = Relationship(back_populates="vehicle")
+    vehicle_availabilities: list["VehicleAvailability"] = Relationship(
+        back_populates="vehicle",
+        sa_relationship_kwargs={
+            "lazy": "joined",
+        },
+    )
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -120,3 +127,20 @@ class Vehicle(BaseModel, table=True):
                 Option.from_base(option_base, vehicle)
         with Session(database) as session:
             return session.get(Vehicle, vehicle.id)
+
+    @property
+    def active_availability(self) -> Optional["VehicleAvailability"]:
+        availabilities = [
+            availability
+            for availability in self.vehicle_availabilities
+            if availability.is_currently_available
+        ]
+        if len(availabilities) > 1:
+            raise ValueError(
+                "There is more than one active availability for this vehicle"
+            )
+        return availabilities[0] if availabilities else None
+
+    @property
+    def has_active_availability(self) -> bool:
+        return self.active_availability is not None
