@@ -14,3 +14,8 @@ POSTGRES_DB="athlon"
 # PGAdmin
 PGADMIN_DEFAULT_EMAIL="my_email@example.com"
 PGADMIN_DEFAULT_PASSWORD="my_password"
+
+# Email
+EMAIL_FROM="my_email@gmail.com"
+EMAIL_TO="my_email@gmail.com"
+GOOGLE_APP_PASSWORD="wwww xxxx yyyy zzzz"

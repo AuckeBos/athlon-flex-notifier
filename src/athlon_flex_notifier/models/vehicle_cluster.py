@@ -91,5 +91,13 @@ class VehicleCluster(BaseModel, table=True):
         """Notify about a cluster if at least one availability is not notified."""
         return len(self.unnotified_availabilities) > 0
 
+    @property
+    def uri(self) -> str:
+        return f"https://flex.athlon.com/app/showroom/{self.make}/{self.model}"
+
+    def sized_image_uri(self, width: int) -> str:
+        """Return the uri for an image of a given width."""
+        return self.image_uri.replace("[#width#]", str(width))
+
     def __str__(self) -> str:
         return f"{self.make} {self.model}"

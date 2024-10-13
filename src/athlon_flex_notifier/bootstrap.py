@@ -2,6 +2,7 @@
 
 import logging
 import os
+import smtplib
 from logging import Logger
 
 from athlon_flex_api import AthlonFlexApi
@@ -11,7 +12,8 @@ from sqlalchemy import create_engine
 from sqlmodel import SQLModel
 
 from athlon_flex_notifier.notifications.console_notifier import ConsoleNotifier
-from athlon_flex_notifier.notifications.notifier import Notifier
+from athlon_flex_notifier.notifications.email_notifier import EmailNotifier
+from athlon_flex_notifier.notifications.notifiers import Notifiers
 
 
 def load_env() -> None:
@@ -30,7 +32,10 @@ def bootstrap_di() -> None:
     )
     _setup_database()
     _setup_logger()
-    di[Notifier] = ConsoleNotifier()
+    di[smtplib.SMTP] = lambda di_: _smpt_server()
+    di[Notifiers] = lambda di_: Notifiers(
+        notifiers=[ConsoleNotifier(), EmailNotifier(di_)]
+    )
 
 
 def _setup_database():
@@ -62,3 +67,11 @@ def _setup_logger() -> Logger:
     console_handler.setFormatter(log_format)
     logger.addHandler(console_handler)
     di[Logger] = logger
+
+
+def _smpt_server() -> smtplib.SMTP:
+    """Configure SMTP server."""
+    server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+    server.ehlo()
+    server.login(os.environ["EMAIL_FROM"], os.environ["GOOGLE_APP_PASSWORD"])
+    return server

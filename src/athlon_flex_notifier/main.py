@@ -6,7 +6,7 @@ from kink import inject
 
 from athlon_flex_notifier.models.vehicle_availability import VehicleAvailability
 from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
-from athlon_flex_notifier.notifications.notifier import Notifier
+from athlon_flex_notifier.notifications.notifiers import Notifiers
 
 
 @inject
@@ -36,12 +36,12 @@ def store_vehicle_availability(vehicle_clusters: list[VehicleCluster]) -> None:
 
 
 @inject
-def main(notifier: Notifier) -> None:
+def main(notifiers: Notifiers) -> None:
     """Main entrypoint for testing."""  # noqa: D401
-    clusters = get_available_vehicle_clusters()
+    # clusters = get_available_vehicle_clusters()
     clusters = VehicleCluster.all()
     store_vehicle_availability(clusters)
-    notifier.notify()
+    notifiers.notify()
 
 
 if __name__ == "__main__":

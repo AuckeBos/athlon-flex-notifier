@@ -12,5 +12,4 @@ class ConsoleNotifier(Notifier):
             self.logger.info("\t %s", vehicle_cluster)
             for availability in vehicle_cluster.unnotified_availabilities:
                 self.logger.info("\t\t %s", availability)
-                self.mark_as_notified(availability)
         return True

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>New Vehicles Available</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    table {
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
+    .gray{
+      color: gray;
+    }
+  </style>
+</head>
+<body>
+  <h1>New vehicles available</h1>
+  <p>The following vehicles just became available in the <a href="https://flex.athlon.com/app/showroom">Athlon Flex Showroom</a>
+  {% for cluster in renderer.vehicle_clusters %}
+    <h2>{{ cluster.make }} {{ cluster.model }}</h2>
+    <img src="{{ cluster.sized_image_uri(300) }}" alt="Vehicle image">
+    <p><a class="gray" href="{{ cluster.uri }} ">View in showroom</a></p>
+    <table>
+      <tr>
+        <th>Vehicle</th>
+        <th>Price</th>
+        <th>Contribution</th>
+        <th>Net cost</th>
+        <th>Available since</th>
+        <th>Link</th>            
+      </tr>
+      {% for availability in cluster.unnotified_availabilities %}
+        <tr>
+          <td>{{ availability.vehicle }}</td>
+          <td>€{{ availability.vehicle.calculated_price_in_euro_per_month|round(2) }}</td>
+          <td>€{{ availability.vehicle.contribution_in_euro|round(2) }}</td>
+          <td>€{{ availability.vehicle.net_cost_in_euro_per_month|round(2) }}</td>
+          <td>{{ availability.available_since.strftime("%Y-%m-%d %H:%M") }}</td>
+          <td><a href="{{ availability.vehicle.uri }}">View in showroom</a></td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% endfor %}
+</body>
+</html>

@@ -36,6 +36,7 @@ class Vehicle(BaseModel, table=True):
     external_type_id: str
     image_uri: str | None = None
     is_electric: bool | None = None
+    uri: str
     license_plate: str | None = None
     color: str | None = None
     official_color: str | None = None
@@ -97,6 +98,7 @@ class Vehicle(BaseModel, table=True):
             "external_type_id": vehicle_base.externalTypeId,
             "image_uri": vehicle_base.imageUri,
             "is_electric": vehicle_base.isElectric,
+            "uri": vehicle_base.uri,
             "vehicle_cluster": vehicle_cluster,
         }
         if vehicle_base.details is not None:
@@ -150,6 +152,10 @@ class Vehicle(BaseModel, table=True):
     @property
     def has_active_availability(self) -> bool:
         return self.active_availability is not None
+
+    def sized_image_uri(self, width: int) -> str:
+        """Return the uri for an image of a given width."""
+        return self.image_uri.replace("[#width#]", str(width))
 
     def __str__(self) -> str:
         return f"{self.make} {self.model} {self.color} {self.model_year}"

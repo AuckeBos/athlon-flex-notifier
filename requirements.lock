@@ -36,8 +36,12 @@ greenlet==3.1.1
 idna==3.10
     # via requests
     # via yarl
+jinja2==3.1.4
+    # via athlon-flex-notifier
 kink==0.8.0
     # via athlon-flex-notifier
+markupsafe==3.0.1
+    # via jinja2
 multidict==6.1.0
     # via aiohttp
     # via yarl
