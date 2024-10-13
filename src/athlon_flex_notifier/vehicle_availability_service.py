@@ -29,7 +29,13 @@ class VehicleAvailabilityServices:
 
     def update_availabilities(self) -> None:
         availabilities_to_deactivate = self._existing_availabilities
-        for vehicle_cluster in self._currently_available_clusters:
+        available_clusters = self._currently_available_clusters
+        self.logger.info(
+            "%s clusters; %s vehicles;",
+            len(available_clusters),
+            sum(len(cluster.vehicles) for cluster in available_clusters),
+        )
+        for vehicle_cluster in available_clusters:
             for vehicle in vehicle_cluster.vehicles:
                 if availability := vehicle.active_availability:
                     del availabilities_to_deactivate[availability.id]

@@ -36,9 +36,13 @@ services:
 
   prefect-agent:
     container_name: athlon_prefect_agent
-    image: index.docker.io/auckebos/athlon-flex-notifier:latest
+    build:
+      context: ../
+      dockerfile: infrastructure/Dockerfile
     env_file:
-      - ../.docker-env    
+      - ../.docker-env
+    volumes:
+      - ../src:/home/athlon/src      
     ports:
       - "13004:8787"    
     depends_on:
@@ -50,7 +54,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --interval 300 athlon_prefect_agent
-    restart: unless-stopped    
+    restart: unless-stopped
 
 volumes:
   data:

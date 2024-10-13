@@ -4,7 +4,7 @@
         {
             "label": "Docker up",
             "type": "shell",
-            "command": "docker-compose -f infrastructure/docker-compose.yml --env-file ./.docker-env -p athlon  up",
+            "command": "docker-compose -f infrastructure/development.yml --env-file ./.docker-env -p athlon up",
             "options": {
                 "cwd": "${workspaceFolder}"
             }
