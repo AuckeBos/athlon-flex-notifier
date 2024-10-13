@@ -38,8 +38,7 @@ def store_vehicle_availability(vehicle_clusters: list[VehicleCluster]) -> None:
 @inject
 def main(notifiers: Notifiers) -> None:
     """Main entrypoint for testing."""  # noqa: D401
-    # clusters = get_available_vehicle_clusters()
-    clusters = VehicleCluster.all()
+    clusters = get_available_vehicle_clusters()
     store_vehicle_availability(clusters)
     notifiers.notify()
 

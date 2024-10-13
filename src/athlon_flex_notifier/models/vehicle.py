@@ -117,13 +117,21 @@ class Vehicle(BaseModel, table=True):
         if vehicle_base.pricing is not None:
             data = data | {
                 "fiscal_value_in_euro": vehicle_base.pricing.fiscalValueInEuro,
-                "base_price_in_euro_per_month": vehicle_base.pricing.basePricePerMonthInEuro,
-                "calculated_price_in_euro_per_month": vehicle_base.pricing.calculatedPricePerMonthInEuro,
+                "base_price_in_euro_per_month": (
+                    vehicle_base.pricing.basePricePerMonthInEuro
+                ),
+                "calculated_price_in_euro_per_month": (
+                    vehicle_base.pricing.calculatedPricePerMonthInEuro
+                ),
                 "price_per_km": vehicle_base.pricing.pricePerKm,
                 "fuel_price_per_km": vehicle_base.pricing.fuelPricePerKm,
                 "contribution_in_euro": vehicle_base.pricing.contributionInEuro,
-                "expected_fuel_cost_in_euro_per_month": vehicle_base.pricing.expectedFuelCostPerMonthInEuro,
-                "net_cost_in_euro_per_month": vehicle_base.pricing.netCostPerMonthInEuro,
+                "expected_fuel_cost_in_euro_per_month": (
+                    vehicle_base.pricing.expectedFuelCostPerMonthInEuro
+                ),
+                "net_cost_in_euro_per_month": (
+                    vehicle_base.pricing.netCostPerMonthInEuro
+                ),
             }
         vehicle = Vehicle(**data).upsert()
         if vehicle_base.options:

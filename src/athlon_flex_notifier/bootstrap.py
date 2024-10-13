@@ -32,13 +32,13 @@ def bootstrap_di() -> None:
     )
     _setup_database()
     _setup_logger()
-    di[smtplib.SMTP] = lambda di_: _smpt_server()
+    di[smtplib.SMTP] = lambda _: _smpt_server()
     di[Notifiers] = lambda di_: Notifiers(
         notifiers=[ConsoleNotifier(), EmailNotifier(di_)]
     )
 
 
-def _setup_database():
+def _setup_database() -> None:
     """Setup database connection."""  # noqa: D401
     di["database"] = create_engine(
         "postgresql://{username}:{password}@{host}:{port}/{database}".format(

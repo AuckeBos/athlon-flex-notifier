@@ -40,6 +40,7 @@ ignore = [
     "N815", # Mixed case variable. Allow format returned by API
     "D203", # one-blank-line-before-class
     "D213", # multi-line-summary-second-line
+    "D100", # Missing docstring in public module
     "D102", # Missing docstring in public method
     "D104", # Missing docstring in public module
     "D105", # Missing docstring in magic method
