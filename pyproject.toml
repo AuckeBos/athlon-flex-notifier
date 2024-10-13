@@ -13,6 +13,7 @@ dependencies = [
     "psycopg2>=2.9.9",
     "pytz>=2024.2",
     "jinja2>=3.1.4",
+    "prefect>=3.0.8",
 ]
 readme = "README.md"
 requires-python = ">= 3.10"
@@ -24,6 +25,7 @@ build-backend = "hatchling.build"
 [tool.rye]
 managed = true
 dev-dependencies = []
+excluded-dependencies = ["pywin32"]
 
 [tool.hatch.metadata]
 allow-direct-references = true

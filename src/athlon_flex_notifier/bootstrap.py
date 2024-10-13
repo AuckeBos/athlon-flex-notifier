@@ -8,6 +8,8 @@ from logging import Logger
 from athlon_flex_api import AthlonFlexApi
 from dotenv import find_dotenv, load_dotenv
 from kink import di
+from prefect.exceptions import MissingContextError
+from prefect.logging import get_logger, get_run_logger
 from sqlalchemy import create_engine
 from sqlmodel import SQLModel
 
@@ -23,7 +25,7 @@ def load_env() -> None:
 
 def bootstrap_di() -> None:
     """Setup all dependencies."""  # noqa: D401
-    di[AthlonFlexApi] = AthlonFlexApi(
+    di[AthlonFlexApi] = lambda _: AthlonFlexApi(
         email=os.getenv("ATHLON_USERNAME", None),
         password=os.getenv("ATHLON_PASSWORD", None),
         gross_yearly_income=os.getenv("GROSS_YEARLY_INCOME", None),
@@ -31,11 +33,12 @@ def bootstrap_di() -> None:
         == "true",
     )
     _setup_database()
-    _setup_logger()
     di[smtplib.SMTP] = lambda _: _smpt_server()
     di[Notifiers] = lambda di_: Notifiers(
         notifiers=[ConsoleNotifier(), EmailNotifier(di_)]
     )
+    # Use factory, to retry getting the prefect logger each time
+    di.factories[Logger] = lambda _: _get_logger(__name__)
 
 
 def _setup_database() -> None:
@@ -54,19 +57,20 @@ def _setup_database() -> None:
     SQLModel.metadata.create_all(di["database"])
 
 
-def _setup_logger() -> Logger:
-    """Configure logger."""
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-    log_format = logging.Formatter(
-        fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(log_format)
-    logger.addHandler(console_handler)
-    di[Logger] = logger
+def _get_logger(name: str) -> logging.Logger:
+    """Get the logger.
+
+    If we can get the prefect logger (we are running in a prefect flow), use it
+    If not, create a new logger.
+    """
+    try:
+        logger = get_run_logger()
+    except MissingContextError:
+        logger = get_logger(name)
+        logger.warning("Bad prefect logger;")
+    logger.setLevel(logging.DEBUG)
+
+    return logger
 
 
 def _smpt_server() -> smtplib.SMTP:

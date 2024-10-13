@@ -19,3 +19,6 @@ PGADMIN_DEFAULT_PASSWORD="my_password"
 EMAIL_FROM="my_email@gmail.com"
 EMAIL_TO="my_email@gmail.com"
 GOOGLE_APP_PASSWORD="wwww xxxx yyyy zzzz"
+
+# Prefect
+PREFECT_API_URL=http://prefect-server:4200/api

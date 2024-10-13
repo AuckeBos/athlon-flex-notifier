@@ -5,8 +5,6 @@ class ConsoleNotifier(Notifier):
     """Notify by printing to the console."""
 
     def notify(self) -> bool:
-        if not self.vehicle_clusters:
-            return True
         self.logger.info("The following new vehicles are available:")
         for vehicle_cluster in self.vehicle_clusters:
             self.logger.info("\t %s", vehicle_cluster)

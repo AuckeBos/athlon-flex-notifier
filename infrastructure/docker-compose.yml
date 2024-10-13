@@ -2,7 +2,7 @@ services:
   postgres:
     image: 'postgres:16.4-bullseye'
     ports:
-      - 15432:5432
+      - 13001:5432
     env_file:
       - ../.docker-env
     volumes:
@@ -15,12 +15,37 @@ services:
     env_file:
       - ../.docker-env  
     ports:
-      - 12008:80
+      - 13002:80
     depends_on:
       - postgres
     restart: unless-stopped
 
+  prefect-server:
+    image: prefecthq/prefect:3.0.8-python3.12
+    environment:
+      - PREFECT_SERVER_API_HOST=0.0.0.0
+      - PREFECT_UI_URL=http://127.0.0.1:13003/api
+      - PREFECT_UI_API_URL=http://127.0.0.1:13003/api    
+    ports:
+      - 13003:4200    
+    volumes:
+      - prefect_server:/root/.prefect
+    entrypoint: ["/opt/prefect/entrypoint.sh", "prefect", "server", "start"]
+
+    restart: unless-stopped
+
+  prefect-agent:
+    image: index.docker.io/auckebos/athlon-flex-notifier:latest
+    env_file:
+      - ../.docker-env    
+    ports:
+      - "13004:8787"    
+    depends_on:
+      - prefect-server
+    restart: unless-stopped
+
 volumes:
   data:
+  prefect_server:
     
 

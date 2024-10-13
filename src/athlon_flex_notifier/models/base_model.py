@@ -29,7 +29,7 @@ class BaseModel(SQLModel):
 
     @classmethod
     @inject
-    def all(cls, database: Engine) -> list[T]:
+    def all(cls: T, database: Engine) -> list[T]:
         """Load all entities from the database."""
         with Session(database) as session:
             return [item[0] for item in session.exec(select(cls)).unique().all()]
