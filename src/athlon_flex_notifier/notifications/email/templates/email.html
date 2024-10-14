@@ -41,9 +41,9 @@
       {% for availability in cluster.unnotified_availabilities %}
         <tr>
           <td>{{ availability.vehicle }}</td>
-          <td>€{{ availability.vehicle.calculated_price_in_euro_per_month|round(2) }}</td>
-          <td>€{{ availability.vehicle.contribution_in_euro|round(2) }}</td>
-          <td>€{{ availability.vehicle.net_cost_in_euro_per_month|round(2) }}</td>
+          <td>€{{ (availability.vehicle.calculated_price_in_euro_per_month or 0.0)|round(2) }}</td>
+          <td>€{{ (availability.vehicle.contribution_in_euro or 0.0)|round(2) }}</td>
+          <td>€{{ (availability.vehicle.net_cost_in_euro_per_month or 0.0)|round(2) }}</td>
           <td>{{ availability.available_since.strftime("%Y-%m-%d %H:%M") }}</td>
           <td><a href="{{ availability.vehicle.uri }}">View in showroom</a></td>
         </tr>
