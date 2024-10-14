@@ -34,7 +34,7 @@ async-property==0.2.2
     # via athlon-flex-api
 asyncpg==0.29.0
     # via prefect
-athlon-flex-api==0.1.5
+athlon-flex-api==0.1.6
     # via athlon-flex-notifier
 attrs==24.2.0
     # via aiohttp
