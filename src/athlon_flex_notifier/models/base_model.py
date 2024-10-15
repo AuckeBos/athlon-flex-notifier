@@ -1,9 +1,12 @@
+from datetime import datetime
 from functools import cached_property, reduce
 from typing import Optional, TypeVar
 
 from kink import inject
 from sqlalchemy import Engine, select
-from sqlmodel import Session, SQLModel
+from sqlmodel import Field, Session, SQLModel
+
+from athlon_flex_notifier.utils import now
 
 T = TypeVar("T", bound="BaseModel")
 
@@ -14,6 +17,9 @@ class BaseModel(SQLModel):
     Extends the SQLModel class with additional methods.
     """
 
+    created_at: datetime | None = Field(default=now(), nullable=False, exclude=True)
+    updated_at: datetime | None = Field(default_factory=now, nullable=False)
+
     @inject
     def upsert(self: T, database: Engine) -> T:
         """Upsert one entity into the database."""
@@ -22,7 +28,7 @@ class BaseModel(SQLModel):
             if existing_model := self._get_existing_model_based_on_business_keys(
                 session
             ):
-                model = existing_model.sqlmodel_update(self)
+                model = existing_model.sqlmodel_update(self.model_dump())
             session.add(model)
             session.commit()
         return model
