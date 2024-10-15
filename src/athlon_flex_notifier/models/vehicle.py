@@ -99,7 +99,6 @@ class Vehicle(BaseModel, table=True):
             "image_uri": vehicle_base.imageUri,
             "is_electric": vehicle_base.isElectric,
             "uri": vehicle_base.uri,
-            "vehicle_cluster": vehicle_cluster,
         }
         if vehicle_base.details is not None:
             data = data | {
