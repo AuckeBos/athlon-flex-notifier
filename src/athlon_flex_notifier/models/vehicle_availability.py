@@ -21,7 +21,7 @@ class VehicleAvailability(BaseModel, table=True):
     id: int | None = Field(primary_key=True, default=None)
     make: str
     model: str
-    vehicle_id: str = Field(foreign_key="vehicle.id")
+    vehicle_id: str = Field(foreign_key="vehicle.id", ondelete="CASCADE")
     available_since: datetime
     available_until: datetime | None = None
     notified: bool = False

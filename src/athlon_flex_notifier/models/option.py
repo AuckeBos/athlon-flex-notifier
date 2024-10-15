@@ -19,7 +19,9 @@ class Option(BaseModel, table=True):
     externalId: str
     optionName: str
     included: bool
-    vehicle_id: str = Field(primary_key=True, foreign_key="vehicle.id")
+    vehicle_id: str = Field(
+        primary_key=True, foreign_key="vehicle.id", ondelete="CASCADE"
+    )
     vehicle: "Vehicle" = Relationship(back_populates="options")
 
     @staticmethod
