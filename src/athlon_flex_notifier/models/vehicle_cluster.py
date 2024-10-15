@@ -67,7 +67,7 @@ class VehicleCluster(BaseModel, table=True):
         vehicle_cluster = VehicleCluster(**data).upsert()
         if vehicle_cluster_base.vehicles:
             for vehicle_base in vehicle_cluster_base.vehicles:
-                Vehicle.from_base(vehicle_base, vehicle_cluster)
+                Vehicle.from_base(vehicle_base)
         with Session(database) as session:
             return session.get(
                 VehicleCluster, (vehicle_cluster.make, vehicle_cluster.model)

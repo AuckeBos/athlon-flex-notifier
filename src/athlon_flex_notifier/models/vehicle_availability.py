@@ -52,12 +52,14 @@ class VehicleAvailability(BaseModel, table=True):
     @staticmethod
     def from_vehicle(vehicle: Vehicle) -> "VehicleAvailability":
         """Create a SQLModel instance from an API vehicle, and upsert it."""
-        return VehicleAvailability(
+        availability = VehicleAvailability(
             make=vehicle.make,
             model=vehicle.model,
             vehicle_id=vehicle.id,
             available_since=now(),
         ).upsert()
+        availability.vehicle = vehicle
+        return availability
 
     def deactivate(self) -> None:
         self.available_until = now()
