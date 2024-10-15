@@ -1,6 +1,7 @@
 from logging import Logger
 
 from athlon_flex_api import AthlonFlexApi
+from athlon_flex_api.models.filters.vehicle_cluster_filter import AllVehicleClusters
 from athlon_flex_api.models.vehicle_cluster import DetailLevel
 from kink import inject
 
@@ -17,6 +18,7 @@ class VehicleAvailabilityServices:
     Then it creates new vehicle_availability reocrds for vehicles that are
     available, but do not have an activate availability.
     Finally it deletes availabilities for vehicles that are no longer available.
+
     """
 
     api: AthlonFlexApi
@@ -52,7 +54,8 @@ class VehicleAvailabilityServices:
             VehicleCluster.from_base(base)
             for base in (
                 self.api.vehicle_clusters(
-                    detail_level=DetailLevel.INCLUDE_VEHICLE_DETAILS
+                    detail_level=DetailLevel.INCLUDE_VEHICLE_DETAILS,
+                    filter_=AllVehicleClusters(),
                 )
             ).vehicle_clusters
         ]

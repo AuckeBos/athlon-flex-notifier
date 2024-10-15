@@ -26,6 +26,11 @@ class Renderer(BaseModel):
             for availability in vehicle_cluster.unnotified_availabilities
         )
 
+    def round_or_na(self, value: float) -> str:
+        if value is None:
+            return "N/A"
+        return f"{value:.2f}"
+
     def render(self) -> str:
         environment = Environment(
             loader=FileSystemLoader(str(self.TEMPLATE_FOLDER)), autoescape=True

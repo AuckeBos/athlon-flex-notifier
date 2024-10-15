@@ -19,6 +19,12 @@ class Vehicle(BaseModel, table=True):
     A Vehicle defines a specific vehicle configuration.
     For example one instance of the Opel Corsa E. It belongs to the VehicleCluster
     of its make and type.
+
+    The following fields differ based on whether the user is logged in:
+        - calculatedPricePerMonthInEuro is updated when the user is logged in
+        - contributionInEuro is updated when the user is logged in
+        - netCostPerMonthInEuro is not present when the user is not logged in
+
     """
 
     model_config: ClassVar[dict[str, Any]] = {"protected_namespaces": ()}
@@ -80,7 +86,6 @@ class Vehicle(BaseModel, table=True):
     def from_base(
         cls,
         vehicle_base: VehicleBase,
-        vehicle_cluster: "VehicleCluster",
         database: Engine,
     ) -> "Vehicle":
         """Create a SQLModel instance from an API option, and upsert it."""
@@ -163,6 +168,13 @@ class Vehicle(BaseModel, table=True):
     def sized_image_uri(self, width: int) -> str:
         """Return the uri for an image of a given width."""
         return self.image_uri.replace("[#width#]", str(width))
+
+    @property
+    def is_leasable_by_user(self) -> bool:
+        """If the user can lease this vehicle, its net cost is computed by the API."""
+        # todo: this is wrong. A net cost is computed as well when not leasable. Reason
+        # thatm ileage per motnh si then decreased to 1000
+        return self.net_cost_in_euro_per_month is not None
 
     def __str__(self) -> str:
         return f"{self.make} {self.model} {self.color} {self.model_year}"
