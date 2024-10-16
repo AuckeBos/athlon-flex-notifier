@@ -1,9 +1,8 @@
 from typing import TYPE_CHECKING, Any, ClassVar, Optional
 
 from athlon_flex_api.models.vehicle import Vehicle as VehicleBase
-from kink import inject
-from sqlalchemy import Engine, ForeignKeyConstraint
-from sqlmodel import Field, Relationship, Session
+from sqlalchemy import ForeignKeyConstraint
+from sqlmodel import Field, Relationship
 
 from athlon_flex_notifier.models.base_model import BaseModel
 from athlon_flex_notifier.models.option import Option
@@ -67,9 +66,13 @@ class Vehicle(BaseModel, table=True):
             "lazy": "joined",
         },
     )
-    options: list[Option] = Relationship(back_populates="vehicle")
+    options: list[Option] = Relationship(
+        back_populates="vehicle",
+        cascade_delete=True,
+    )
     vehicle_availabilities: list["VehicleAvailability"] = Relationship(
         back_populates="vehicle",
+        cascade_delete=True,
         sa_relationship_kwargs={
             "lazy": "joined",
         },
@@ -82,13 +85,10 @@ class Vehicle(BaseModel, table=True):
     )
 
     @classmethod
-    @inject
     def from_base(
         cls,
         vehicle_base: VehicleBase,
-        database: Engine,
     ) -> "Vehicle":
-        """Create a SQLModel instance from an API option, and upsert it."""
         data = {
             "id": vehicle_base.id,
             "make": vehicle_base.make,
@@ -137,12 +137,13 @@ class Vehicle(BaseModel, table=True):
                     vehicle_base.pricing.netCostPerMonthInEuro
                 ),
             }
-        vehicle = Vehicle(**data).upsert()
+        vehicle = Vehicle(**data)
         if vehicle_base.options:
-            for option_base in vehicle_base.options:
+            vehicle.options = [
                 Option.from_base(option_base, vehicle)
-        with Session(database) as session:
-            return session.get(Vehicle, vehicle.id)
+                for option_base in vehicle_base.options
+            ]
+        return vehicle
 
     @property
     def active_availability(self) -> Optional["VehicleAvailability"]:
@@ -168,13 +169,6 @@ class Vehicle(BaseModel, table=True):
     def sized_image_uri(self, width: int) -> str:
         """Return the uri for an image of a given width."""
         return self.image_uri.replace("[#width#]", str(width))
-
-    @property
-    def is_leasable_by_user(self) -> bool:
-        """If the user can lease this vehicle, its net cost is computed by the API."""
-        # todo: this is wrong. A net cost is computed as well when not leasable. Reason
-        # thatm ileage per motnh si then decreased to 1000
-        return self.net_cost_in_euro_per_month is not None
 
     def __str__(self) -> str:
         return f"{self.make} {self.model} {self.color} {self.model_year}"

@@ -32,12 +32,14 @@ class VehicleAvailabilityServices:
 
     def update_availabilities(self) -> None:
         availabilities_to_deactivate = self._existing_availabilities
+        create_availabilities_for = []
         for vehicle_cluster in self._currently_available_clusters:
             for vehicle in vehicle_cluster.vehicles:
                 if availability := vehicle.active_availability:
                     del availabilities_to_deactivate[availability.id]
                     continue
-                availability = VehicleAvailability.from_vehicle(vehicle)
+                create_availabilities_for.append(vehicle)
+        VehicleAvailability.from_vehicles(*create_availabilities_for)
         for availability in availabilities_to_deactivate.values():
             availability.deactivate()
             self.logger.info("Vehicle is no longer available: %s", availability)
@@ -53,7 +55,7 @@ class VehicleAvailabilityServices:
                 )
             ).vehicle_clusters
         with time_it("Upserting clusters"):
-            clusters = [VehicleCluster.from_base(base) for base in base_clusters]
+            clusters = VehicleCluster.from_base(*base_clusters)
         self.logger.info(
             "Found %s clusters; %s vehicles;",
             len(base_clusters),

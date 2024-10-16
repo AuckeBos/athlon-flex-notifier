@@ -1,10 +1,10 @@
 """General utility functions."""
 
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime
 from logging import Logger
-from typing import Generator
 
 from kink import inject
 from pytz import timezone
