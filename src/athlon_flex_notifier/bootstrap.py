@@ -50,7 +50,7 @@ def _setup_database() -> None:
             host=os.getenv("POSTGRES_HOST"),
             port=os.getenv("POSTGRES_PORT"),
             database=os.getenv("POSTGRES_DB"),
-        )
+        ),
     )
     import athlon_flex_notifier.models  # noqa: F401
 

@@ -7,6 +7,7 @@ from kink import inject
 
 from athlon_flex_notifier.models.vehicle_availability import VehicleAvailability
 from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
+from athlon_flex_notifier.utils import time_it
 
 
 @inject
@@ -31,34 +32,36 @@ class VehicleAvailabilityServices:
 
     def update_availabilities(self) -> None:
         availabilities_to_deactivate = self._existing_availabilities
-        available_clusters = self._currently_available_clusters
-        self.logger.info(
-            "%s clusters; %s vehicles;",
-            len(available_clusters),
-            sum(len(cluster.vehicles) for cluster in available_clusters),
-        )
-        for vehicle_cluster in available_clusters:
+        create_availabilities_for = []
+        for vehicle_cluster in self._currently_available_clusters:
             for vehicle in vehicle_cluster.vehicles:
                 if availability := vehicle.active_availability:
                     del availabilities_to_deactivate[availability.id]
                     continue
-                availability = VehicleAvailability.from_vehicle(vehicle)
-                self.logger.info("New vehicle is available: %s", availability)
+                create_availabilities_for.append(vehicle)
+        VehicleAvailability.from_vehicles(*create_availabilities_for)
         for availability in availabilities_to_deactivate.values():
             availability.deactivate()
             self.logger.info("Vehicle is no longer available: %s", availability)
 
     @property
     def _currently_available_clusters(self) -> list[VehicleCluster]:
-        return [
-            VehicleCluster.from_base(base)
-            for base in (
+        self.logger.debug("Loading clusters...")
+        with time_it("Loading clusters"):
+            base_clusters = (
                 self.api.vehicle_clusters(
                     detail_level=DetailLevel.INCLUDE_VEHICLE_DETAILS,
                     filter_=AllVehicleClusters(),
                 )
             ).vehicle_clusters
-        ]
+        with time_it("Upserting clusters"):
+            clusters = VehicleCluster.from_base(*base_clusters)
+        self.logger.info(
+            "Found %s clusters; %s vehicles;",
+            len(base_clusters),
+            sum(len(cluster.vehicles) for cluster in base_clusters),
+        )
+        return clusters
 
     @property
     def _existing_availabilities(self) -> dict[int, VehicleAvailability]:

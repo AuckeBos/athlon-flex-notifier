@@ -1,9 +1,7 @@
 from typing import TYPE_CHECKING
 
 from athlon_flex_api.models.vehicle_cluster import VehicleCluster as VehicleClusterBase
-from kink import inject
-from sqlalchemy import Engine
-from sqlmodel import Field, Relationship, Session
+from sqlmodel import Field, Relationship
 
 from athlon_flex_notifier.models.base_model import BaseModel
 from athlon_flex_notifier.models.vehicle import Vehicle
@@ -40,16 +38,13 @@ class VehicleCluster(BaseModel, table=True):
     )
     vehicle_availabilities: list["VehicleAvailability"] | None = Relationship(
         back_populates="vehicle_cluster",
-        cascade_delete=False,
+        cascade_delete=True,
         sa_relationship_kwargs={"lazy": "joined"},
     )
 
     @classmethod
-    @inject
-    def from_base(
-        cls, vehicle_cluster_base: VehicleClusterBase, database: Engine
-    ) -> "VehicleCluster":
-        """Create a SQLModel instance from an API option, and upsert it."""
+    def _from_base(cls, vehicle_cluster_base: VehicleClusterBase) -> "VehicleCluster":
+        """Create a SQLModel instance from an API option."""
         data = {
             "first_vehicle_id": vehicle_cluster_base.firstVehicleId,
             "external_type_id": vehicle_cluster_base.externalTypeId,
@@ -64,14 +59,19 @@ class VehicleCluster(BaseModel, table=True):
             "max_co2_emission": vehicle_cluster_base.maxCO2Emission,
             "image_uri": vehicle_cluster_base.imageUri,
         }
-        vehicle_cluster = VehicleCluster(**data).upsert()
+        vehicle_cluster = VehicleCluster(**data)
         if vehicle_cluster_base.vehicles:
-            for vehicle_base in vehicle_cluster_base.vehicles:
+            vehicle_cluster.vehicles = [
                 Vehicle.from_base(vehicle_base)
-        with Session(database) as session:
-            return session.get(
-                VehicleCluster, (vehicle_cluster.make, vehicle_cluster.model)
-            )
+                for vehicle_base in vehicle_cluster_base.vehicles
+            ]
+        return vehicle_cluster
+
+    @classmethod
+    def from_base(cls, *vehicle_clusters: VehicleClusterBase) -> list["VehicleCluster"]:
+        """Create instances and upsert them."""
+        cls.upsert(*[cls._from_base(base) for base in vehicle_clusters])
+        return cls.all()
 
     @property
     def is_available(self) -> bool:

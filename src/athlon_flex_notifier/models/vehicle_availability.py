@@ -21,7 +21,7 @@ class VehicleAvailability(BaseModel, table=True):
     id: int | None = Field(primary_key=True, default=None)
     make: str
     model: str
-    vehicle_id: str = Field(foreign_key="vehicle.id", ondelete="CASCADE")
+    vehicle_id: str = Field(foreign_key="vehicle.id")
     available_since: datetime
     available_until: datetime | None = None
     notified: bool = False
@@ -49,25 +49,30 @@ class VehicleAvailability(BaseModel, table=True):
             timezone.utc
         )
 
-    @staticmethod
-    def from_vehicle(vehicle: Vehicle) -> "VehicleAvailability":
-        """Create a SQLModel instance from an API vehicle, and upsert it."""
-        availability = VehicleAvailability(
+    @classmethod
+    def _from_vehicle(cls, vehicle: Vehicle) -> "VehicleAvailability":
+        """Create a SQLModel instance from a Vehicle."""
+        return cls(
             make=vehicle.make,
             model=vehicle.model,
             vehicle_id=vehicle.id,
             available_since=now(),
-        ).upsert()
-        availability.vehicle = vehicle
-        return availability
+            vehicle=vehicle,
+        )
+
+    @classmethod
+    def from_vehicles(cls, *vehicles: Vehicle) -> "VehicleAvailability":
+        """Create SQLModel instances for a list of vehicles, and save them in DB."""
+        cls.upsert(*[cls._from_vehicle(vehicle) for vehicle in vehicles])
+        return cls.all()
 
     def deactivate(self) -> None:
         self.available_until = now()
-        self.upsert()
+        self.upsert(self)
 
     def mark_as_notified(self) -> None:
         self.notified = True
-        self.upsert()
+        self.upsert(self)
 
     def __str__(self) -> str:
         return f"{self.vehicle!s} - available since {self.available_since}"
