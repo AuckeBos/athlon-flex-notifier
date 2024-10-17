@@ -19,6 +19,7 @@ class Notifiers:
         self.logger = logger
 
     def notify(self) -> bool:
+        return True
         if not self.vehicle_clusters:
             self.logger.info("No new vehicles are available.")
             return True
