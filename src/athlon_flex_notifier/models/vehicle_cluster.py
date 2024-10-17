@@ -70,8 +70,7 @@ class VehicleCluster(BaseModel, table=True):
     @classmethod
     def from_base(cls, *vehicle_clusters: VehicleClusterBase) -> list["VehicleCluster"]:
         """Create instances and upsert them."""
-        cls.upsert(*[cls._from_base(base) for base in vehicle_clusters])
-        return cls.all()
+        return cls.upsert(*[cls._from_base(base) for base in vehicle_clusters])
 
     @property
     def is_available(self) -> bool:

@@ -63,8 +63,7 @@ class VehicleAvailability(BaseModel, table=True):
     @classmethod
     def from_vehicles(cls, *vehicles: Vehicle) -> "VehicleAvailability":
         """Create SQLModel instances for a list of vehicles, and save them in DB."""
-        cls.upsert(*[cls._from_vehicle(vehicle) for vehicle in vehicles])
-        return cls.all()
+        return cls.upsert(*[cls._from_vehicle(vehicle) for vehicle in vehicles])
 
     def deactivate(self) -> None:
         self.available_until = now()
