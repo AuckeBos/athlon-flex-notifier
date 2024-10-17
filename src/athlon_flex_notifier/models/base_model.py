@@ -1,4 +1,5 @@
 from datetime import datetime
+from functools import cached_property
 from typing import TypeVar
 
 from kink import di, inject
@@ -22,11 +23,10 @@ class BaseModel(SQLModel):
     @staticmethod
     def upsert(*entities: T) -> list[T]:
         """Upsert multiple entities into the database."""
-        with Session(di["database"]) as session:
-            for entity in entities:
-                session.merge(entity)
+        with Session(di["database"], expire_on_commit=False) as session:
+            merged_entities = [session.merge(entity) for entity in entities]
             session.commit()
-        return entities
+        return merged_entities
 
     @classmethod
     @inject
@@ -34,3 +34,13 @@ class BaseModel(SQLModel):
         """Load all entities from the database."""
         with Session(database) as session:
             return [item[0] for item in session.exec(select(cls)).unique().all()]
+
+    @cached_property
+    def primary_keys(self) -> list[str]:
+        """Get the primary keys of the entity."""
+        return [key.key for key in self.__table__.primary_key.columns]
+
+    @cached_property
+    def primary_key_values(self) -> list[str]:
+        """Get the primary key values of the entity."""
+        return [str(getattr(self, key)) for key in self.primary_keys]
