@@ -3,9 +3,9 @@ from functools import cached_property
 from typing import TypeVar
 
 from kink import di, inject
-from sqlalchemy import DateTime, Engine, select
+from sqlalchemy import DateTime, Engine, inspect, select
 from sqlalchemy.dialects.postgresql import insert
-from sqlmodel import Field, Session, SQLModel, func
+from sqlmodel import Field, Relationship, Session, SQLModel, func
 
 T = TypeVar("T", bound="BaseModel")
 
@@ -37,12 +37,14 @@ class BaseModel(SQLModel):
     def upsert(cls, *entities: T) -> list[T]:
         """Upsert multiple entities into the database."""
         # https://stackoverflow.com/questions/25955200/sqlalchemy-performing-a-bulk-upsert-if-exists-update-else-insert-in-postgr
-        data = [entity.model_dump() for entity in entities]
+        new_entities = []
+        for entity in entities:
+            # entity.first_vehicle_id = "test" + str(entity.first_vehicle_id)
+            new_entities.append(entity)
+        data = [entity.model_dump() for entity in new_entities]
         with Session(di["database"], expire_on_commit=False) as session:
             # todo: fix issue: updated_at not updated
-            cols = (
-                set(cls.keys()) - set(cls.primary_keys()) - {"created_at", "updated_at"}
-            )
+            cols = set(cls.keys()) - set(cls.primary_keys()) - {"created_at"}
             stmt = insert(cls).values(data)
             stmt = stmt.on_conflict_do_update(
                 index_elements=cls.primary_keys(),
@@ -51,6 +53,19 @@ class BaseModel(SQLModel):
             session.exec(stmt)
             session.commit()
         return entities
+
+    @classmethod
+    def upsert_relationships(cls: T, *entities: T) -> list[T]:
+        relationships = T.relationships
+        for relationship in relationships:
+            cls.upsert_relationships(*entities, relationship=relationship)
+
+    @classmethod
+    def upsert_relationships(
+        cls: T, *entities: T, relationship: Relationship
+    ) -> list[T]:
+        childs = [entity.getattr(relationship.key) for entity in entities]
+        test = ""
 
     @classmethod
     @inject
@@ -73,3 +88,8 @@ class BaseModel(SQLModel):
     def primary_key_values(self) -> list[str]:
         """Get the primary key values of the entity."""
         return [str(getattr(self, key)) for key in self.primary_keys]
+
+    @cached_property
+    def relationships(self) -> list[Relationship]:
+        """Get the relationships of the entity."""
+        return inspect(self).mapper.relationships.values()
