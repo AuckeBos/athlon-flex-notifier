@@ -4,6 +4,7 @@ from athlon_flex_api.models.vehicle_cluster import VehicleCluster as VehicleClus
 from sqlmodel import Field, Relationship
 
 from athlon_flex_notifier.models.base_model import BaseModel
+from athlon_flex_notifier.models.option import Option
 from athlon_flex_notifier.models.vehicle import Vehicle
 
 if TYPE_CHECKING:
@@ -70,7 +71,17 @@ class VehicleCluster(BaseModel, table=True):
     @classmethod
     def from_base(cls, *vehicle_clusters: VehicleClusterBase) -> list["VehicleCluster"]:
         """Create instances and upsert them."""
-        return cls.upsert(*[cls._from_base(base) for base in vehicle_clusters])
+        vehicle_clusters = [
+            cls._from_base(vehicle_cluster) for vehicle_cluster in vehicle_clusters
+        ]
+        cls.upsert(*vehicle_clusters)
+        vehicles = [
+            vehicle for cluster in vehicle_clusters for vehicle in cluster.vehicles
+        ]
+        Vehicle.upsert(*vehicles)
+        options = [option for vehicle in vehicles for option in vehicle.options]
+        Option.upsert(*options)
+        return vehicle_clusters
 
     @property
     def is_available(self) -> bool:
