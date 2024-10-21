@@ -43,15 +43,9 @@ class BaseModel(SQLModel):
     @classmethod
     def upsert(cls, *entities: T) -> list[T]:
         """Upsert multiple entities into the database."""
-        # https://stackoverflow.com/questions/25955200/sqlalchemy-performing-a-bulk-upsert-if-exists-update-else-insert-in-postgr
         if not entities:
             return []
-        new_entities = []
-        for entity in entities:
-            entity.first_vehicle_id = "test" + str(entity.first_vehicle_id)
-            new_entities.append(entity)
-        # todo: fix issue: attribute_hash always changes
-        data = [entity.model_dump() for entity in new_entities]
+        data = [entity.model_dump() for entity in entities]
         with Session(di["database"], expire_on_commit=False) as session:
             stmt = insert(cls).values(data)
             stmt = stmt.on_conflict_do_update(
@@ -60,6 +54,7 @@ class BaseModel(SQLModel):
                     col: getattr(stmt.excluded, col)
                     for col in {*cls.attribute_keys(), "updated_at", "attribute_hash"}
                 },
+                where=cls.attribute_hash != stmt.excluded.attribute_hash,
             )
             session.exec(stmt)
             session.commit()
@@ -73,21 +68,23 @@ class BaseModel(SQLModel):
             return [item[0] for item in session.exec(select(cls)).unique().all()]
 
     @classmethod
-    def primary_keys(cls) -> list[str]:
-        """Get the primary keys of the entity."""
-        return [key.key for key in cls.__table__.primary_key.columns]
-
-    @classmethod
     def keys(cls) -> list[str]:
         """Get the keys of the entity."""
-        return [key.key for key in cls.__table__.c]
+        return sorted([key.key for key in cls.__table__.c])
+
+    @classmethod
+    def primary_keys(cls) -> list[str]:
+        """Get the primary keys of the entity."""
+        return sorted([key.key for key in cls.__table__.primary_key.columns])
+
+    @classmethod
+    def generated_keys(cls) -> list[str]:
+        return sorted(["key_hash", "attribute_hash", "created_at", "updated_at"])
 
     @classmethod
     def attribute_keys(cls) -> set[str]:
-        return (
-            set(cls.keys())
-            - set(cls.primary_keys())
-            - {"key_hash", "attribute_hash", "created_at", "updated_at"}
+        return sorted(
+            set(cls.keys()) - set(cls.primary_keys()) - set(cls.generated_keys())
         )
 
     @cached_property
