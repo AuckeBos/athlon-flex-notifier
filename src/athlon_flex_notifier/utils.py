@@ -3,16 +3,15 @@
 import time
 from collections.abc import Generator
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from logging import Logger
 
 from kink import inject
-from pytz import timezone
 
 
 def now() -> datetime:
     """Get now in Amsterdam timezone."""
-    return datetime.now(tz=timezone("Europe/Amsterdam"))
+    return datetime.now(timezone.utc)
 
 
 @contextmanager

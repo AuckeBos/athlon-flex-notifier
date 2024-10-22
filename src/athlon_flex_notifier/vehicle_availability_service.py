@@ -36,7 +36,7 @@ class VehicleAvailabilityServices:
         for vehicle_cluster in self._currently_available_clusters:
             for vehicle in vehicle_cluster.vehicles:
                 if availability := vehicle.active_availability:
-                    del availabilities_to_deactivate[availability.id]
+                    del availabilities_to_deactivate[availability.key_hash]
                     continue
                 create_availabilities_for.append(vehicle)
         VehicleAvailability.from_vehicles(*create_availabilities_for)
@@ -55,7 +55,7 @@ class VehicleAvailabilityServices:
                 )
             ).vehicle_clusters
         with time_it("Upserting clusters"):
-            clusters = VehicleCluster.from_base(*base_clusters)
+            clusters = VehicleCluster.from_base(*base_clusters[:1])
         self.logger.info(
             "Found %s clusters; %s vehicles;",
             len(base_clusters),
@@ -66,7 +66,7 @@ class VehicleAvailabilityServices:
     @property
     def _existing_availabilities(self) -> dict[int, VehicleAvailability]:
         return {
-            availability.id: availability
+            availability.key_hash: availability
             for availability in VehicleAvailability.all()
             if availability.is_currently_available
         }

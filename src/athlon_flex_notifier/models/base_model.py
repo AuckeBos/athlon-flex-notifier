@@ -18,10 +18,11 @@ class BaseModel(SQLModel):
     Extends the SQLModel class with additional methods.
     """
 
+    # Default hash value is not None, because then model_dump would exlude it
+    DEFAULT_HASH_VALUE: ClassVar[str] = "XXX"
     HASH_SEPARATOR: ClassVar[str] = "-"
-
-    key_hash: str | None = Field(default=None, unique=True)
-    attribute_hash: str | None = Field(default=None)
+    key_hash: str | None = Field(default=DEFAULT_HASH_VALUE)
+    attribute_hash: str | None = Field(default=DEFAULT_HASH_VALUE)
 
     created_at: datetime | None = Field(
         exclude=True,
@@ -45,11 +46,14 @@ class BaseModel(SQLModel):
         """Upsert multiple entities into the database."""
         if not entities:
             return []
-        data = [entity.model_dump() for entity in entities]
+        data = [
+            entity.model_dump(exclude_none=True, exclude_unset=False)
+            for entity in entities
+        ]
         with Session(di["database"], expire_on_commit=False) as session:
             stmt = insert(cls).values(data)
             stmt = stmt.on_conflict_do_update(
-                index_elements=["key_hash"],
+                index_elements=[*cls.primary_keys()],
                 set_={
                     col: getattr(stmt.excluded, col)
                     for col in {*cls.attribute_keys(), "updated_at", "attribute_hash"}
@@ -58,7 +62,20 @@ class BaseModel(SQLModel):
             )
             session.exec(stmt)
             session.commit()
-        return entities
+        result = cls.get(key_hashes=[row["key_hash"] for row in data])
+        if len(result) != len(entities):
+            msg = f"Upserted {len(result)} entities, expected {len(entities)}"
+            raise RuntimeError(msg)
+        return result
+
+    @classmethod
+    @inject
+    def get(cls: T, database: Engine, *, key_hashes: list[str]) -> list[T]:
+        """Load entity by list of key hashes."""
+        with Session(database) as session:
+            return list(
+                session.exec(select(cls).where(cls.key_hash.in_(key_hashes))).unique()
+            )
 
     @classmethod
     @inject
@@ -103,13 +120,17 @@ class BaseModel(SQLModel):
         return inspect(self).mapper.relationships.values()
 
     @field_serializer("key_hash")
-    def compute_key_hash(self, key_hash: str | None) -> str:
-        return sha256(
+    def compute_key_hash(self, existing_key_hash: str | None) -> str:
+        computed_key_hash = sha256(
             self.HASH_SEPARATOR.join(self.primary_key_values).encode()
         ).hexdigest()
+        if existing_key_hash not in (self.DEFAULT_HASH_VALUE, computed_key_hash):
+            msg = f"Key hash mismatch: existing: {existing_key_hash}, computed: {computed_key_hash}"  # noqa: E501
+            raise ValueError(msg)
+        return computed_key_hash
 
     @field_serializer("attribute_hash")
-    def compute_attribute_hash(self, attribute_hash: str | None) -> str:
+    def compute_attribute_hash(self, _: str | None) -> str:
         return sha256(
             self.HASH_SEPARATOR.join(self.attribute_values).encode()
         ).hexdigest()

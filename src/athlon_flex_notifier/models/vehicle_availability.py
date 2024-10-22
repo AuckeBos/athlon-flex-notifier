@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import ForeignKeyConstraint
+from sqlalchemy import DateTime, ForeignKeyConstraint
 from sqlmodel import Field, Relationship
 
 from athlon_flex_notifier.models.base_model import BaseModel
@@ -18,12 +18,17 @@ class VehicleAvailability(BaseModel, table=True):
 
     __tablename__ = "vehicle_availability"
 
-    id: int | None = Field(primary_key=True, default=None)
-    make: str
-    model: str
+    make: str = Field(primary_key=True)
+    model: str = Field(primary_key=True)
     vehicle_id: str = Field(foreign_key="vehicle.id")
-    available_since: datetime
-    available_until: datetime | None = None
+    available_since: datetime | None = Field(
+        primary_key=True,
+        sa_type=DateTime(timezone=True),
+    )
+    available_until: datetime | None = Field(
+        sa_type=DateTime(timezone=True),
+    )
+
     notified: bool = False
     vehicle_cluster: VehicleCluster = Relationship(
         sa_relationship_kwargs={
