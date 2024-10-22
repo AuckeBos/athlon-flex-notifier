@@ -30,6 +30,6 @@ class Option(BaseModel, table=True):
             "externalId": option_base.externalId,
             "optionName": option_base.optionName,
             "included": option_base.included,
-            "vehicle": vehicle,
+            "vehicle_id": vehicle.id,
         }
         return Option(**data)
