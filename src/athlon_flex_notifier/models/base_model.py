@@ -46,10 +46,7 @@ class BaseModel(SQLModel):
         """Upsert multiple entities into the database."""
         if not entities:
             return []
-        data = [
-            entity.model_dump(exclude_none=True, exclude_unset=False)
-            for entity in entities
-        ]
+        data = [entity.model_dump() for entity in entities]
         with Session(di["database"], expire_on_commit=False) as session:
             stmt = insert(cls).values(data)
             stmt = stmt.on_conflict_do_update(

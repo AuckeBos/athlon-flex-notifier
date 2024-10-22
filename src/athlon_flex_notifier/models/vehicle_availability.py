@@ -20,7 +20,7 @@ class VehicleAvailability(BaseModel, table=True):
 
     make: str = Field(primary_key=True)
     model: str = Field(primary_key=True)
-    vehicle_id: str = Field(foreign_key="vehicle.id")
+    vehicle_id: str = Field(primary_key=True, foreign_key="vehicle.id")
     available_since: datetime | None = Field(
         primary_key=True,
         sa_type=DateTime(timezone=True),
