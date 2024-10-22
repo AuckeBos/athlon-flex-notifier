@@ -69,19 +69,23 @@ class VehicleCluster(BaseModel, table=True):
         return vehicle_cluster
 
     @classmethod
-    def from_base(cls, *vehicle_clusters: VehicleClusterBase) -> list["VehicleCluster"]:
+    def from_base(
+        cls, *vehicle_cluster_bases: VehicleClusterBase
+    ) -> list["VehicleCluster"]:
         """Create instances and upsert them."""
         vehicle_clusters = [
-            cls._from_base(vehicle_cluster) for vehicle_cluster in vehicle_clusters
+            cls._from_base(vehicle_cluster) for vehicle_cluster in vehicle_cluster_bases
         ]
-        cls.upsert(*vehicle_clusters)
+        vehicle_clusters_upserted = cls.upsert(*vehicle_clusters)
         vehicles = [
             vehicle for cluster in vehicle_clusters for vehicle in cluster.vehicles
         ]
         Vehicle.upsert(*vehicles)
         options = [option for vehicle in vehicles for option in vehicle.options]
         Option.upsert(*options)
-        return vehicle_clusters
+        return VehicleCluster.get(
+            key_hashes=[cluster.key_hash for cluster in vehicle_clusters_upserted]
+        )
 
     @property
     def is_available(self) -> bool:

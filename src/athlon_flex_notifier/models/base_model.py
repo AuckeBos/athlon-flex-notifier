@@ -62,6 +62,7 @@ class BaseModel(SQLModel):
             )
             session.exec(stmt)
             session.commit()
+        # Reload from DB, to ensure all attributes are up-to-date
         result = cls.get(key_hashes=[row["key_hash"] for row in data])
         if len(result) != len(entities):
             msg = f"Upserted {len(result)} entities, expected {len(entities)}"
@@ -73,9 +74,12 @@ class BaseModel(SQLModel):
     def get(cls: T, database: Engine, *, key_hashes: list[str]) -> list[T]:
         """Load entity by list of key hashes."""
         with Session(database) as session:
-            return list(
-                session.exec(select(cls).where(cls.key_hash.in_(key_hashes))).unique()
-            )
+            return [
+                item[0]
+                for item in session.exec(
+                    select(cls).where(cls.key_hash.in_(key_hashes))
+                ).unique()
+            ]
 
     @classmethod
     @inject

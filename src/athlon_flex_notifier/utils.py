@@ -10,7 +10,7 @@ from kink import inject
 
 
 def now() -> datetime:
-    """Get now in Amsterdam timezone."""
+    """Get now in UTC."""
     return datetime.now(timezone.utc)
 
 
