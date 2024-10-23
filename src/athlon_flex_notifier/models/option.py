@@ -1,12 +1,8 @@
-from typing import TYPE_CHECKING
-
+from athlon_flex_api.models.vehicle import Vehicle as VehicleBase
 from sqlmodel import Field, Relationship
 
 from athlon_flex_notifier.models.base_model import BaseModel
-
-if TYPE_CHECKING:
-    from athlon_flex_notifier.models.vehicle import Vehicle
-from athlon_flex_api.models.vehicle import Vehicle as VehicleBase
+from athlon_flex_notifier.models.vehicle import Vehicle
 
 
 class Option(BaseModel, table=True):
@@ -15,21 +11,25 @@ class Option(BaseModel, table=True):
     Example: Trekhaak.
     """
 
-    id: str = Field(primary_key=True)
+    id: str
     externalId: str
     optionName: str
     included: bool
-    vehicle_id: str = Field(primary_key=True, foreign_key="vehicle.id")
-    vehicle: "Vehicle" = Relationship(back_populates="options")
+    vehicle_key_hash: str = Field(foreign_key="vehicle.key_hash")
+    vehicle: Vehicle = Relationship(back_populates="options")
 
     @staticmethod
-    def from_base(option_base: VehicleBase.Option, vehicle: "Vehicle") -> "Option":
+    def business_keys() -> list[str]:
+        return ["id", "vehicle_key_hash"]
+
+    @staticmethod
+    def from_base(option_base: VehicleBase.Option, vehicle: Vehicle) -> "Option":
         """Create a SQLModel instance from an API option, and upsert it."""
         data = {
             "id": option_base.id,
             "externalId": option_base.externalId,
             "optionName": option_base.optionName,
             "included": option_base.included,
-            "vehicle_id": vehicle.id,
+            "vehicle_key_hash": Vehicle.compute_key_hash(vehicle),
         }
         return Option(**data)

@@ -55,7 +55,7 @@ class VehicleAvailabilityServices:
                 )
             ).vehicle_clusters
         with time_it("Upserting clusters"):
-            clusters = VehicleCluster.from_base(*base_clusters)
+            clusters = VehicleCluster.from_bases(*base_clusters)
         self.logger.info(
             "Found %s clusters; %s vehicles;",
             len(base_clusters),

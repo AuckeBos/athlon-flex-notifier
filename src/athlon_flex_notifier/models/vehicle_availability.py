@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKeyConstraint
+from sqlalchemy import DateTime
 from sqlmodel import Field, Relationship
 
 from athlon_flex_notifier.models.base_model import BaseModel
@@ -18,11 +18,11 @@ class VehicleAvailability(BaseModel, table=True):
 
     __tablename__ = "vehicle_availability"
 
-    make: str = Field(primary_key=True)
-    model: str = Field(primary_key=True)
-    vehicle_id: str = Field(primary_key=True, foreign_key="vehicle.id")
+    make: str
+    model: str
+    vehicle_key_hash: str = Field(foreign_key="vehicle.key_hash")
+    vehicle_cluster_key_hash: str = Field(foreign_key="vehicle_cluster.key_hash")
     available_since: datetime | None = Field(
-        primary_key=True,
         sa_type=DateTime(timezone=True),
     )
     available_until: datetime | None = Field(
@@ -42,11 +42,10 @@ class VehicleAvailability(BaseModel, table=True):
             "lazy": "joined",
         },
     )
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["make", "model"], ["vehicle_cluster.make", "vehicle_cluster.model"]
-        ),
-    )
+
+    @staticmethod
+    def business_keys() -> list[str]:
+        return ["make", "model", "vehicle_key_hash", "available_since"]
 
     @property
     def is_currently_available(self) -> bool:
@@ -62,7 +61,9 @@ class VehicleAvailability(BaseModel, table=True):
             model=vehicle.model,
             vehicle_id=vehicle.id,
             available_since=now(),
-            vehicle=vehicle,
+            vehicle_key_hash=Vehicle.compute_key_hash(vehicle),
+            # Use vehicle as param to compute hash, since it contains all key cols
+            vehicle_cluster_key_hash=VehicleCluster.compute_key_hash(vehicle),
         )
 
     @classmethod
