@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from athlon_flex_api.models.vehicle_cluster import VehicleCluster as VehicleClusterBase
-from sqlmodel import Field, Relationship
+from sqlmodel import Relationship
 
 from athlon_flex_notifier.models.base_model import BaseModel
 from athlon_flex_notifier.models.option import Option
@@ -21,8 +21,8 @@ class VehicleCluster(BaseModel, table=True):
     __tablename__ = "vehicle_cluster"
     first_vehicle_id: str
     external_type_id: str
-    make: str = Field(primary_key=True)
-    model: str = Field(primary_key=True)
+    make: str
+    model: str
     latest_model_year: int
     vehicle_count: int
     min_price_in_euro_per_month: float
@@ -42,6 +42,10 @@ class VehicleCluster(BaseModel, table=True):
         cascade_delete=True,
         sa_relationship_kwargs={"lazy": "joined"},
     )
+
+    @staticmethod
+    def business_keys() -> list[str]:
+        return ["make", "model"]
 
     @classmethod
     def _from_base(cls, vehicle_cluster_base: VehicleClusterBase) -> "VehicleCluster":
@@ -69,7 +73,7 @@ class VehicleCluster(BaseModel, table=True):
         return vehicle_cluster
 
     @classmethod
-    def from_base(
+    def from_bases(
         cls, *vehicle_cluster_bases: VehicleClusterBase
     ) -> list["VehicleCluster"]:
         """Create instances and upsert them."""

@@ -1,13 +1,12 @@
 from typing import TYPE_CHECKING, Any, ClassVar, Optional
 
 from athlon_flex_api.models.vehicle import Vehicle as VehicleBase
-from sqlalchemy import ForeignKeyConstraint
 from sqlmodel import Field, Relationship
 
 from athlon_flex_notifier.models.base_model import BaseModel
-from athlon_flex_notifier.models.option import Option
 
 if TYPE_CHECKING:
+    from athlon_flex_notifier.models.option import Option
     from athlon_flex_notifier.models.vehicle_availability import VehicleAvailability
     from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
 
@@ -28,7 +27,7 @@ class Vehicle(BaseModel, table=True):
 
     model_config: ClassVar[dict[str, Any]] = {"protected_namespaces": ()}
 
-    id: str = Field(primary_key=True)
+    id: str
     make: str
     model: str
     type: str
@@ -60,13 +59,14 @@ class Vehicle(BaseModel, table=True):
     contribution_in_euro: float | None = None
     expected_fuel_cost_in_euro_per_month: float | None = None
     net_cost_in_euro_per_month: float | None = None
+    vehicle_cluster_key_hash: str | None = Field(foreign_key="vehicle_cluster.key_hash")
     vehicle_cluster: "VehicleCluster" = Relationship(
         back_populates="vehicles",
         sa_relationship_kwargs={
             "lazy": "joined",
         },
     )
-    options: list[Option] = Relationship(
+    options: list["Option"] = Relationship(
         back_populates="vehicle",
         cascade_delete=True,
     )
@@ -78,17 +78,18 @@ class Vehicle(BaseModel, table=True):
         },
     )
 
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["make", "model"], ["vehicle_cluster.make", "vehicle_cluster.model"]
-        ),
-    )
+    @staticmethod
+    def business_keys() -> list[str]:
+        return ["id"]
 
     @classmethod
     def from_base(
         cls,
         vehicle_base: VehicleBase,
     ) -> "Vehicle":
+        from athlon_flex_notifier.models.option import Option
+        from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
+
         data = {
             "id": vehicle_base.id,
             "make": vehicle_base.make,
@@ -104,6 +105,7 @@ class Vehicle(BaseModel, table=True):
             "image_uri": vehicle_base.imageUri,
             "is_electric": vehicle_base.isElectric,
             "uri": vehicle_base.uri,
+            "vehicle_cluster_key_hash": VehicleCluster.compute_key_hash(vehicle_base),
         }
         if vehicle_base.details is not None:
             data = data | {
