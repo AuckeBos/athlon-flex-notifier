@@ -10,9 +10,12 @@ from dotenv import find_dotenv, load_dotenv
 from kink import di
 from prefect.exceptions import MissingContextError
 from prefect.logging import get_logger, get_run_logger
-from sqlalchemy import create_engine
-from sqlmodel import SQLModel
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import with_loader_criteria
+from sqlalchemy.orm.session import ORMExecuteState
+from sqlmodel import Session, SQLModel
 
+from athlon_flex_notifier.models.base_model import BaseModel
 from athlon_flex_notifier.notifications.console_notifier import ConsoleNotifier
 from athlon_flex_notifier.notifications.email_notifier import EmailNotifier
 from athlon_flex_notifier.notifications.notifiers import Notifiers
@@ -51,10 +54,24 @@ def _setup_database() -> None:
             port=os.getenv("POSTGRES_PORT"),
             database=os.getenv("POSTGRES_DB"),
         ),
+        echo=True,
     )
     import athlon_flex_notifier.models  # noqa: F401
 
     SQLModel.metadata.create_all(di["database"])
+
+
+@event.listens_for(Session, "do_orm_execute")
+def _exclude_inactive(execute_state: ORMExecuteState) -> None:
+    include_inactive = execute_state.execution_options.get("include_inactive", False)
+    if execute_state.is_select and not include_inactive:
+        execute_state.statement = execute_state.statement.options(
+            with_loader_criteria(
+                BaseModel,
+                lambda cls: (not hasattr(cls, "active_to")) or cls.active_to.is_(None),
+                include_aliases=True,
+            )
+        )
 
 
 def _get_logger(name: str) -> logging.Logger:

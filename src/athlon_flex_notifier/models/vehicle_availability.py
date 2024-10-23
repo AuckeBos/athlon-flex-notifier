@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from uuid import UUID
 
 from sqlalchemy import DateTime
 from sqlmodel import Field, Relationship
@@ -20,8 +21,8 @@ class VehicleAvailability(BaseModel, table=True):
 
     make: str
     model: str
-    vehicle_key_hash: str = Field(foreign_key="vehicle.key_hash")
-    vehicle_cluster_key_hash: str = Field(foreign_key="vehicle_cluster.key_hash")
+    vehicle_id: UUID = Field(foreign_key="vehicle.id")
+    vehicle_cluster_id: UUID = Field(foreign_key="vehicle_cluster.id")
     available_since: datetime | None = Field(
         sa_type=DateTime(timezone=True),
     )
@@ -45,7 +46,7 @@ class VehicleAvailability(BaseModel, table=True):
 
     @staticmethod
     def business_keys() -> list[str]:
-        return ["make", "model", "vehicle_key_hash", "available_since"]
+        return ["make", "model", "vehicle_id", "available_since"]
 
     @property
     def is_currently_available(self) -> bool:
@@ -59,11 +60,9 @@ class VehicleAvailability(BaseModel, table=True):
         return cls(
             make=vehicle.make,
             model=vehicle.model,
-            vehicle_id=vehicle.id,
             available_since=now(),
-            vehicle_key_hash=Vehicle.compute_key_hash(vehicle),
-            # Use vehicle as param to compute hash, since it contains all key cols
-            vehicle_cluster_key_hash=VehicleCluster.compute_key_hash(vehicle),
+            vehicle_id=vehicle.id,
+            vehicle_cluster_id=vehicle.vehicle_cluster_id,
         )
 
     @classmethod
