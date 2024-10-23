@@ -15,12 +15,12 @@ class Option(BaseModel, table=True):
     externalId: str
     optionName: str
     included: bool
-    vehicle_key_hash: str = Field(foreign_key="vehicle.key_hash")
+    vehicle_id: str = Field(foreign_key="vehicle.id")
     vehicle: Vehicle = Relationship(back_populates="options")
 
     @staticmethod
     def business_keys() -> list[str]:
-        return ["id", "vehicle_key_hash"]
+        return ["id", "vehicle_id"]
 
     @staticmethod
     def from_base(option_base: VehicleBase.Option, vehicle: Vehicle) -> "Option":
@@ -30,6 +30,6 @@ class Option(BaseModel, table=True):
             "externalId": option_base.externalId,
             "optionName": option_base.optionName,
             "included": option_base.included,
-            "vehicle_key_hash": Vehicle.compute_key_hash(vehicle),
+            "vehicle_id": Vehicle.compute_id(vehicle),
         }
         return Option(**data)

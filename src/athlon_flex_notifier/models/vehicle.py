@@ -59,7 +59,7 @@ class Vehicle(BaseModel, table=True):
     contribution_in_euro: float | None = None
     expected_fuel_cost_in_euro_per_month: float | None = None
     net_cost_in_euro_per_month: float | None = None
-    vehicle_cluster_key_hash: str | None = Field(foreign_key="vehicle_cluster.key_hash")
+    vehicle_cluster_id: str | None = Field(foreign_key="vehicle_cluster.id")
     vehicle_cluster: "VehicleCluster" = Relationship(
         back_populates="vehicles",
         sa_relationship_kwargs={
@@ -105,7 +105,7 @@ class Vehicle(BaseModel, table=True):
             "image_uri": vehicle_base.imageUri,
             "is_electric": vehicle_base.isElectric,
             "uri": vehicle_base.uri,
-            "vehicle_cluster_key_hash": VehicleCluster.compute_key_hash(vehicle_base),
+            "vehicle_cluster_id": VehicleCluster.compute_id(vehicle_base),
         }
         if vehicle_base.details is not None:
             data = data | {
