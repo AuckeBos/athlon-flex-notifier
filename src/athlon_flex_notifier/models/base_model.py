@@ -10,8 +10,6 @@ from sqlalchemy import DateTime, Engine, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import Field, Session, SQLModel, func
 
-from athlon_flex_notifier.utils import now
-
 T = TypeVar("T", bound="BaseModel")
 
 
@@ -30,8 +28,8 @@ class BaseModel(SQLModel):
     key_hash: str | None = Field(default=None)
     attribute_hash: str | None = Field(default=None)
 
-    active_from: datetime = Field(
-        primary_key=True, default=now(), sa_type=DateTime(timezone=True)
+    active_from: datetime | None = Field(
+        primary_key=True, nullable=False, sa_type=DateTime(timezone=True)
     )
     active_to: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
 
