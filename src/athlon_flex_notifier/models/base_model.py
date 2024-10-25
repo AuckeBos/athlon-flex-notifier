@@ -32,6 +32,7 @@ class BaseModel(SQLModel):
         primary_key=True, nullable=False, sa_type=DateTime(timezone=True)
     )
     active_to: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
+    # todo: deleted_at
 
     created_at: datetime | None = Field(
         exclude=True,
