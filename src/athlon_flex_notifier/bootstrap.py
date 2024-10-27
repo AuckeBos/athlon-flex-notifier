@@ -52,6 +52,8 @@ def _setup_database() -> None:
             database=os.getenv("POSTGRES_DB"),
         ),
     )
+    from sqlalchemy.orm import sessionmaker
+
     import athlon_flex_notifier.models  # noqa: F401
 
     SQLModel.metadata.create_all(di["database"])

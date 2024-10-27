@@ -8,15 +8,18 @@ from pydantic import BaseModel as PydanticModel
 from pydantic import field_serializer
 from sqlalchemy import DateTime, Engine, select
 from sqlalchemy.dialects.postgresql import insert
-from sqlmodel import Field, Session, SQLModel, func
+from sqlalchemy.orm import Mapped, Session, mapped_column
+from sqlalchemy.sql.functions import func
+
+from athlon_flex_notifier.models.base import Base
 
 T = TypeVar("T", bound="BaseModel")
 
 
-class BaseModel(SQLModel):
-    """A Base class for SQLModel.
+class BaseModel(Base):
+    """A Base class for SqlAlchemy tables.
 
-    Extends the SQLModel class with additional methods.
+    Extends the Base class with additional methods and default columns.
 
     - key_hash is a computed sha256 hash of the business keys
     - attribute_hash is a computed sha256 hash of the attribute values
@@ -24,31 +27,33 @@ class BaseModel(SQLModel):
     """
 
     HASH_SEPARATOR: ClassVar[str] = "-"
-    id: str | None = Field(default=None, primary_key=True)
-    key_hash: str | None = Field(default=None)
-    attribute_hash: str | None = Field(default=None)
+    id: Mapped[str | None] = mapped_column(default=None, primary_key=True)
+    key_hash: Mapped[str | None] = mapped_column(default=None)
+    attribute_hash: Mapped[str | None] = mapped_column(default=None)
 
-    active_from: datetime | None = Field(
-        primary_key=True, nullable=False, sa_type=DateTime(timezone=True)
+    active_from: Mapped[datetime | None] = mapped_column(
+        primary_key=True, nullable=False, type_=DateTime(timezone=True)
     )
-    active_to: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
-    deleted_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
+    active_to: Mapped[datetime | None] = mapped_column(
+        default=None, type_=DateTime(timezone=True)
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        default=None, type_=DateTime(timezone=True)
+    )
 
-    created_at: datetime | None = Field(
+    created_at: Mapped[datetime | None] = mapped_column(
         exclude=True,
         default=None,
-        sa_type=DateTime(timezone=True),
-        sa_column_kwargs={"server_default": func.now()},
+        type_=DateTime(timezone=True),
+        server_default=func.now(),
     )
-    updated_at: datetime | None = Field(
+    updated_at: Mapped[datetime | None] = mapped_column(
         exclude=True,
         default=None,
-        sa_type=DateTime(timezone=True),
-        sa_column_kwargs={
-            "onupdate": func.now(),
-            "server_default": func.now(),
-            "server_onupdate": func.now(),
-        },
+        type_=DateTime(timezone=True),
+        onupdate=func.now(),
+        server_default=func.now(),
+        server_onupdate=func.now(),
     )
 
     @classmethod
