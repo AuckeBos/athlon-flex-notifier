@@ -1,3 +1,4 @@
+import contextlib
 from datetime import datetime
 from typing import Any, TypeVar
 
@@ -14,13 +15,14 @@ T = TypeVar("T", bound="BaseModel")
 class Upserter:
     entities: list[T]
     data: list[dict[str, Any]]
-    session: Session
+    session: Session | None = None
+    database: Engine
     timestamp: datetime.datetime
 
     @inject
     def __init__(self, database: Engine, entities: list[T]) -> None:
+        self.database = database
         self.entities = entities
-        self.session = Session(database, expire_on_commit=False)
         self.timestamp = now()
         self.data = [entity.model_dump() for entity in entities]
         self.data = [
@@ -30,7 +32,9 @@ class Upserter:
 
     def __del__(self) -> None:
         """Automatically close the session when the object is garbage collected."""
-        self._await(self.session.close())
+        if self.session:
+            with contextlib.suppress(Exception):
+                self.session.close()
 
     @property
     def entity_class(self) -> type[T]:
@@ -55,9 +59,16 @@ class Upserter:
         - For all entities in DB that are not in entities:
             - Close the existing record. ie set active_to and deleted_at
         todo: check https://blog.miguelgrinberg.com/post/implementing-the-soft-delete-pattern-with-flask-and-sqlalchemy
+        todo: use below url for deleted at.
+        https://theshubhendra.medium.com/mastering-soft-delete-advanced-sqlalchemy-techniques-4678f4738947
+
+        Issue: need to attach event with the sessionmaker, but we use the SqlModel session.
+        We do not need sqlmodel, so use sqlalchemy instead of sqlmodel ,then attach to sessionmaker do_orm_execute.
         """
         if not self.data:
             return []
+        if not self.session:
+            self.session = Session(self.database, expire_on_commit=False)
 
         self.close_existing_and_insert_new()
         self.insert_for_updated()
@@ -65,8 +76,9 @@ class Upserter:
         self.session.commit()
         self.session.close()
         # Reload from DB, to ensure all attributes are up-to-date
-        # todo: never load deleted records (add in base query)
-        result = self.entity_class.get(ids=[row["id"] for row in self.data])  # fix
+        result = self.entity_class.get(
+            key_hashes=[row["key_hash"] for row in self.data]
+        )
         if len(result) != len(self.data):
             msg = f"Upserted {len(result)} entities, expected {len(self.data)}"
             raise RuntimeError(msg)

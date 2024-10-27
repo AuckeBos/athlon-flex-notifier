@@ -88,7 +88,7 @@ class VehicleCluster(BaseModel, table=True):
         options = [option for vehicle in vehicles for option in vehicle.options]
         Option.upsert(*options)
         return VehicleCluster.get(
-            ids=[cluster.id for cluster in vehicle_clusters_upserted]
+            key_hashes=[cluster.key_hash for cluster in vehicle_clusters_upserted]
         )
 
     @property

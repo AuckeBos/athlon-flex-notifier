@@ -32,7 +32,7 @@ class BaseModel(SQLModel):
         primary_key=True, nullable=False, sa_type=DateTime(timezone=True)
     )
     active_to: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
-    # todo: deleted_at
+    deleted_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
 
     created_at: datetime | None = Field(
         exclude=True,
@@ -70,7 +70,7 @@ class BaseModel(SQLModel):
             session.exec(stmt)
             session.commit()
         # Reload from DB, to ensure all attributes are up-to-date
-        result = cls.get(ids=[row["id"] for row in data])  # fix
+        result = cls.get(key_hashes=[row["key_hash"] for row in data])
         if len(result) != len(entities):
             msg = f"Upserted {len(result)} entities, expected {len(entities)}"
             raise RuntimeError(msg)
@@ -78,12 +78,14 @@ class BaseModel(SQLModel):
 
     @classmethod
     @inject
-    def get(cls: T, database: Engine, *, ids: list[str]) -> list[T]:
+    def get(cls: T, database: Engine, *, key_hashes: list[str]) -> list[T]:
         """Load entity by list of ids."""
         with Session(database) as session:
             return [
                 item[0]
-                for item in session.exec(select(cls).where(cls.id.in_(ids))).unique()
+                for item in session.exec(
+                    select(cls).where(cls.key_hash.in_(key_hashes))
+                ).unique()
             ]
 
     @classmethod
@@ -119,12 +121,18 @@ class BaseModel(SQLModel):
                 "updated_at",
                 "active_from",
                 "active_to",
+                "deleted_at",
             ]
         )
 
     @classmethod
     def attribute_keys(cls) -> set[str]:
-        return set(cls.keys()) - set(cls.business_keys()) - set(cls.generated_keys())
+        return (
+            set(cls.keys())
+            - set(cls.business_keys())
+            - set(cls.generated_keys())
+            + {"deleted_at"}
+        )
 
     @cached_property
     def business_key_values(self) -> list[str]:
