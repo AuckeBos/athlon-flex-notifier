@@ -84,12 +84,24 @@ class VehicleCluster(BaseModel, table=True):
         vehicles = [
             vehicle for cluster in vehicle_clusters for vehicle in cluster.vehicles
         ]
-        Vehicle.upsert(*vehicles)
+        vehicles_upserted = Vehicle.upsert(*vehicles)
         options = [option for vehicle in vehicles for option in vehicle.options]
         Option.upsert(*options)
-        return VehicleCluster.get(
-            key_hashes=[cluster.key_hash for cluster in vehicle_clusters_upserted]
-        )
+        # temp: rebuild result, only returning vehicles that are in the bases
+        # todo: clean this
+        result = []
+        for vehicle_cluster in vehicle_clusters_upserted:
+            vehicles = [
+                v
+                for v in vehicles_upserted
+                if v.vehicle_cluster_key_hash == vehicle_cluster.key_hash
+            ]
+            vehicle_cluster.vehicles = vehicles
+            result.append(vehicle_cluster)
+        return result
+        # return VehicleCluster.get(
+        # key_hashes=[cluster.key_hash for cluster in vehicle_clusters_upserted]
+        # )
 
     @property
     def is_available(self) -> bool:
