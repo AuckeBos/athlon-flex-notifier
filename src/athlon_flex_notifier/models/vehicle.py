@@ -26,8 +26,7 @@ class Vehicle(BaseModel, table=True):
     """
 
     model_config: ClassVar[dict[str, Any]] = {"protected_namespaces": ()}
-
-    id: str
+    athlon_id: str
     make: str
     model: str
     type: str
@@ -83,15 +82,12 @@ class Vehicle(BaseModel, table=True):
         return ["id"]
 
     @classmethod
-    def from_base(
-        cls,
-        vehicle_base: VehicleBase,
-    ) -> "Vehicle":
+    def from_base(cls, vehicle_base: VehicleBase, vehicle_cluster_id: str) -> "Vehicle":
         from athlon_flex_notifier.models.option import Option
         from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
 
         data = {
-            "id": vehicle_base.id,
+            "athlon_id": vehicle_base.id,
             "make": vehicle_base.make,
             "model": vehicle_base.model,
             "type": vehicle_base.type,
@@ -105,7 +101,7 @@ class Vehicle(BaseModel, table=True):
             "image_uri": vehicle_base.imageUri,
             "is_electric": vehicle_base.isElectric,
             "uri": vehicle_base.uri,
-            "vehicle_cluster_id": VehicleCluster.compute_id(vehicle_base),
+            "vehicle_cluster_id": vehicle_cluster_id,
         }
         if vehicle_base.details is not None:
             data = data | {
@@ -142,7 +138,7 @@ class Vehicle(BaseModel, table=True):
         vehicle = Vehicle(**data)
         if vehicle_base.options:
             vehicle.options = [
-                Option.from_base(option_base, vehicle)
+                Option.from_base(option_base, Vehicle.compute_id(vehicle))
                 for option_base in vehicle_base.options
             ]
         return vehicle

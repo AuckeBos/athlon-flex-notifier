@@ -1,13 +1,16 @@
 import contextlib
 from datetime import datetime
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from kink import inject
-from sqlalchemy import Engine, insert, update
+from sqlalchemy import Engine, update
+from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import Session
 
-from athlon_flex_notifier.models.base_model import BaseModel
 from athlon_flex_notifier.utils import now
+
+if TYPE_CHECKING:
+    from athlon_flex_notifier.models.base_model import BaseModel
 
 T = TypeVar("T", bound="BaseModel")
 
@@ -15,9 +18,11 @@ T = TypeVar("T", bound="BaseModel")
 class Upserter:
     entities: list[T]
     data: list[dict[str, Any]]
+    key_hashes: list[str]
+    attribute_hashes: list[str]
     session: Session | None = None
     database: Engine
-    timestamp: datetime.datetime
+    timestamp: datetime
 
     @inject
     def __init__(self, database: Engine, entities: list[T]) -> None:
@@ -25,6 +30,8 @@ class Upserter:
         self.entities = entities
         self.timestamp = now()
         self.data = [entity.model_dump() for entity in entities]
+        self.key_hashes = [entity["key_hash"] for entity in entities]
+        self.attribute_hashes = [entity["attribute_hash"] for entity in entities]
         self.data = [
             {**entity.model_dump(), "active_from": self.timestamp}
             for entity in entities
@@ -61,18 +68,15 @@ class Upserter:
         todo: check https://blog.miguelgrinberg.com/post/implementing-the-soft-delete-pattern-with-flask-and-sqlalchemy
         todo: use below url for deleted at.
         https://theshubhendra.medium.com/mastering-soft-delete-advanced-sqlalchemy-techniques-4678f4738947
-
-        Issue: need to attach event with the sessionmaker, but we use the SqlModel session.
-        We do not need sqlmodel, so use sqlalchemy instead of sqlmodel ,then attach to sessionmaker do_orm_execute.
         """
         if not self.data:
             return []
         if not self.session:
             self.session = Session(self.database, expire_on_commit=False)
-
-        self.close_existing_and_insert_new()
-        self.insert_for_updated()
-        self.delete_removed()
+        # todo: exclude deleted and active filter where needed
+        self.close_rows_of_updated_entities()
+        self.delete_rows_of_removed_entities()
+        self.create_rows_for_updated_and_new_entities()
         self.session.commit()
         self.session.close()
         # Reload from DB, to ensure all attributes are up-to-date
@@ -84,30 +88,28 @@ class Upserter:
             raise RuntimeError(msg)
         return result
 
-    def close_existing_and_insert_new(self) -> None:
-        statement = insert(self.entity_class).values(self.data)
-        statement = statement.on_conflict_do_update(
-            index_elements=["key_hash"],
-            set_={"active_to": self.timestamp},
-            where=(
-                self.entity_class.attribute_hash != statement.excluded.attribute_hash
-                and statement.excluded.active_to.is_(None)
-            ),
+    def close_rows_of_updated_entities(self) -> None:
+        statement = (
+            update(self.entity_class)
+            .where(
+                self.entity_class.key_hash.in_(self.key_hashes)
+                and self.entity_class.attribute_hash.not_in(self.attribute_hashes)
+                and self.entity_class.active_to.is_(None)
+            )
+            .values(active_to=self.timestamp)
         )
         self.session.exec(statement)
 
-    def insert_for_updated(self) -> None:
+    def create_rows_for_updated_and_new_entities(self) -> None:
         statement = insert(self.entity_class).values(self.data)
         statement = statement.on_conflict_do_nothing(index_elements=["id"])
         self.session.exec(statement)
 
-    def delete_removed(self) -> None:
+    def delete_rows_of_removed_entities(self) -> None:
         statement = (
             update(self.entity_class)
             .where(
-                self.entity_class.key_hash.not_in(
-                    [row["key_hash"] for row in self.data]
-                )
+                self.entity_class.key_hash.not_in(self.key_hashes)
                 and self.entity_class.deleted_at.is_(None)
                 and self.entity_class.active_to.is_(None)
             )

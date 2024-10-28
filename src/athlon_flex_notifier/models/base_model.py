@@ -3,12 +3,13 @@ from functools import cached_property
 from hashlib import sha256
 from typing import Any, ClassVar, TypeVar
 
-from kink import di, inject
+from kink import inject
 from pydantic import BaseModel as PydanticModel
 from pydantic import field_serializer
 from sqlalchemy import DateTime, Engine, select
-from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import Field, Session, SQLModel, func
+
+from athlon_flex_notifier.upserter import Upserter
 
 T = TypeVar("T", bound="BaseModel")
 
@@ -29,7 +30,7 @@ class BaseModel(SQLModel):
     attribute_hash: str | None = Field(default=None)
 
     active_from: datetime | None = Field(
-        primary_key=True, nullable=False, sa_type=DateTime(timezone=True)
+        nullable=False, sa_type=DateTime(timezone=True)
     )
     active_to: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
     deleted_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
@@ -54,27 +55,7 @@ class BaseModel(SQLModel):
     @classmethod
     def upsert(cls, *entities: T) -> list[T]:
         """Upsert multiple entities into the database."""
-        if not entities:
-            return []
-        data = [entity.model_dump() for entity in entities]
-        with Session(di["database"], expire_on_commit=False) as session:
-            stmt = insert(cls).values(data)
-            stmt = stmt.on_conflict_do_update(
-                index_elements=["key_hash"],  # todo: fix, with scd2 upserter
-                set_={
-                    col: getattr(stmt.excluded, col)
-                    for col in {*cls.attribute_keys(), "updated_at", "attribute_hash"}
-                },
-                where=cls.attribute_hash != stmt.excluded.attribute_hash,
-            )
-            session.exec(stmt)
-            session.commit()
-        # Reload from DB, to ensure all attributes are up-to-date
-        result = cls.get(key_hashes=[row["key_hash"] for row in data])
-        if len(result) != len(entities):
-            msg = f"Upserted {len(result)} entities, expected {len(entities)}"
-            raise RuntimeError(msg)
-        return result
+        return Upserter(entities=entities).scd2()
 
     @classmethod
     @inject
@@ -127,12 +108,9 @@ class BaseModel(SQLModel):
 
     @classmethod
     def attribute_keys(cls) -> set[str]:
-        return (
-            set(cls.keys())
-            - set(cls.business_keys())
-            - set(cls.generated_keys())
-            + {"deleted_at"}
-        )
+        return set(cls.keys()) - set(cls.business_keys()) - set(
+            cls.generated_keys()
+        ) | {"deleted_at"}
 
     @cached_property
     def business_key_values(self) -> list[str]:
@@ -180,7 +158,7 @@ class BaseModel(SQLModel):
 
     @field_serializer("attribute_hash")
     def _attribute_hash_serializer(self, _: str | None) -> str:
-        return self._compute_attribute_hash()
+        return self._compute_attribute_hash(self)
 
     @field_serializer("key_hash")
     def _key_hash_serializer(self, _: str | None) -> str:

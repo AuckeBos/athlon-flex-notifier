@@ -4,7 +4,6 @@ from athlon_flex_api.models.vehicle_cluster import VehicleCluster as VehicleClus
 from sqlmodel import Relationship
 
 from athlon_flex_notifier.models.base_model import BaseModel
-from athlon_flex_notifier.models.option import Option
 from athlon_flex_notifier.models.vehicle import Vehicle
 
 if TYPE_CHECKING:
@@ -67,7 +66,9 @@ class VehicleCluster(BaseModel, table=True):
         vehicle_cluster = VehicleCluster(**data)
         if vehicle_cluster_base.vehicles:
             vehicle_cluster.vehicles = [
-                Vehicle.from_base(vehicle_base)
+                Vehicle.from_base(
+                    vehicle_base, VehicleCluster.compute_id(vehicle_cluster)
+                )
                 for vehicle_base in vehicle_cluster_base.vehicles
             ]
         return vehicle_cluster

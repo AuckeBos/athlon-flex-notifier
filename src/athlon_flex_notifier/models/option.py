@@ -11,7 +11,7 @@ class Option(BaseModel, table=True):
     Example: Trekhaak.
     """
 
-    id: str
+    athlon_id: str
     externalId: str
     optionName: str
     included: bool
@@ -23,13 +23,13 @@ class Option(BaseModel, table=True):
         return ["id", "vehicle_id"]
 
     @staticmethod
-    def from_base(option_base: VehicleBase.Option, vehicle: Vehicle) -> "Option":
+    def from_base(option_base: VehicleBase.Option, vehicle_id: str) -> "Option":
         """Create a SQLModel instance from an API option, and upsert it."""
         data = {
-            "id": option_base.id,
+            "athlon_id": option_base.id,
             "externalId": option_base.externalId,
             "optionName": option_base.optionName,
             "included": option_base.included,
-            "vehicle_id": Vehicle.compute_id(vehicle),
+            "vehicle_id": vehicle_id,
         }
         return Option(**data)
