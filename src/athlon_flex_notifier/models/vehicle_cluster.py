@@ -4,6 +4,7 @@ from athlon_flex_api.models.vehicle_cluster import VehicleCluster as VehicleClus
 from sqlmodel import Relationship
 
 from athlon_flex_notifier.models.base_model import BaseModel
+from athlon_flex_notifier.models.option import Option
 from athlon_flex_notifier.models.vehicle import Vehicle
 
 if TYPE_CHECKING:
@@ -66,9 +67,7 @@ class VehicleCluster(BaseModel, table=True):
         vehicle_cluster = VehicleCluster(**data)
         if vehicle_cluster_base.vehicles:
             vehicle_cluster.vehicles = [
-                Vehicle.from_base(
-                    vehicle_base, VehicleCluster.compute_id(vehicle_cluster)
-                )
+                Vehicle.from_base(vehicle_base)
                 for vehicle_base in vehicle_cluster_base.vehicles
             ]
         return vehicle_cluster
@@ -78,19 +77,31 @@ class VehicleCluster(BaseModel, table=True):
         cls, *vehicle_cluster_bases: VehicleClusterBase
     ) -> list["VehicleCluster"]:
         """Create instances and upsert them."""
-        vehicle_clusters = [
-            cls._from_base(vehicle_cluster) for vehicle_cluster in vehicle_cluster_bases
-        ]
-        vehicle_clusters_upserted = cls.upsert(*vehicle_clusters)
-        vehicles = [
-            vehicle for cluster in vehicle_clusters for vehicle in cluster.vehicles
-        ]
-        Vehicle.upsert(*vehicles)
-        options = [option for vehicle in vehicles for option in vehicle.options]
+        vehicle_clusters = {
+            cluster.compute_key_hash(): cluster
+            for cluster in [
+                cls._from_base(vehicle_cluster)
+                for vehicle_cluster in vehicle_cluster_bases
+            ]
+        }
+        vehicle_clusters_upserted = cls.upsert(*vehicle_clusters.values())
+        # set the correct vehicle_cluster_id on the vehicles
+        vehicles = {}
+        for cluster_key_hash, cluster in vehicle_clusters.items():
+            for vehicle in cluster.vehicles:
+                vehicle.vehicle_cluster_id = vehicle_clusters_upserted[
+                    cluster_key_hash
+                ].id
+                vehicles[vehicle.compute_key_hash()] = vehicle
+        vehicles_upserted = Vehicle.upsert(*vehicles.values())
+        # set the correct vehicle_id on the options
+        options = []
+        for vehicle_key_hash, vehicle in vehicles.items():
+            for option in vehicle.options:
+                option.vehicle_id = vehicles_upserted[vehicle_key_hash].id
+                options.append(option)
         Option.upsert(*options)
-        return VehicleCluster.get(
-            key_hashes=[cluster.key_hash for cluster in vehicle_clusters_upserted]
-        )
+        return VehicleCluster.all()
 
     @property
     def is_available(self) -> bool:

@@ -62,20 +62,6 @@ def _setup_database() -> None:
 
 
 @event.listens_for(Session, "do_orm_execute")
-def _exclude_deleted(execute_state: ORMExecuteState) -> None:
-    include_deleted = execute_state.execution_options.get("include_deleted", False)
-    if execute_state.is_select and not include_deleted:
-        execute_state.statement = execute_state.statement.options(
-            with_loader_criteria(
-                BaseModel,
-                lambda cls: (not hasattr(cls, "deleted_at"))
-                or cls.deleted_at.is_(None),
-                include_aliases=True,
-            )
-        )
-
-
-@event.listens_for(Session, "do_orm_execute")
 def _exclude_inactive(execute_state: ORMExecuteState) -> None:
     include_inactive = execute_state.execution_options.get("include_inactive", False)
     if execute_state.is_select and not include_inactive:

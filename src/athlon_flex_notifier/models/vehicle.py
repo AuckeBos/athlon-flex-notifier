@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING, Any, ClassVar, Optional
+from uuid import UUID
 
 from athlon_flex_api.models.vehicle import Vehicle as VehicleBase
 from sqlmodel import Field, Relationship
@@ -58,7 +59,9 @@ class Vehicle(BaseModel, table=True):
     contribution_in_euro: float | None = None
     expected_fuel_cost_in_euro_per_month: float | None = None
     net_cost_in_euro_per_month: float | None = None
-    vehicle_cluster_id: str | None = Field(foreign_key="vehicle_cluster.id")
+    vehicle_cluster_id: UUID | None = Field(
+        foreign_key="vehicle_cluster.id", nullable=False
+    )
     vehicle_cluster: "VehicleCluster" = Relationship(
         back_populates="vehicles",
         sa_relationship_kwargs={
@@ -79,12 +82,16 @@ class Vehicle(BaseModel, table=True):
 
     @staticmethod
     def business_keys() -> list[str]:
-        return ["id"]
+        return ["athlon_id"]
 
     @classmethod
-    def from_base(cls, vehicle_base: VehicleBase, vehicle_cluster_id: str) -> "Vehicle":
+    def from_base(cls, vehicle_base: VehicleBase) -> "Vehicle":
+        """Create a SQLModel instance from an API vehicle, and upsert it.
+
+        Note that the vehicle_cluster_id is not set here. Since it is required in the
+        DB, this property must be set before the vehicle can be upserted.
+        """
         from athlon_flex_notifier.models.option import Option
-        from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
 
         data = {
             "athlon_id": vehicle_base.id,
@@ -101,7 +108,6 @@ class Vehicle(BaseModel, table=True):
             "image_uri": vehicle_base.imageUri,
             "is_electric": vehicle_base.isElectric,
             "uri": vehicle_base.uri,
-            "vehicle_cluster_id": vehicle_cluster_id,
         }
         if vehicle_base.details is not None:
             data = data | {
@@ -138,8 +144,7 @@ class Vehicle(BaseModel, table=True):
         vehicle = Vehicle(**data)
         if vehicle_base.options:
             vehicle.options = [
-                Option.from_base(option_base, Vehicle.compute_id(vehicle))
-                for option_base in vehicle_base.options
+                Option.from_base(option_base) for option_base in vehicle_base.options
             ]
         return vehicle
 

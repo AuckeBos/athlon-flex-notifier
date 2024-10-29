@@ -1,11 +1,12 @@
 from datetime import datetime
 from functools import cached_property
 from hashlib import sha256
-from typing import Any, ClassVar, TypeVar
+from typing import ClassVar, TypeVar
+from uuid import UUID, uuid4
 
 from kink import inject
-from pydantic import BaseModel as PydanticModel
 from pydantic import field_serializer
+from sqlalchemy import UUID as SQLAlchemyUUID
 from sqlalchemy import DateTime, Engine, select
 from sqlmodel import Field, Session, SQLModel, func
 
@@ -25,7 +26,9 @@ class BaseModel(SQLModel):
     """
 
     HASH_SEPARATOR: ClassVar[str] = "-"
-    id: str | None = Field(default=None, primary_key=True)
+    id: UUID = Field(
+        primary_key=True, sa_type=SQLAlchemyUUID(as_uuid=True), default_factory=uuid4
+    )
     key_hash: str | None = Field(default=None)
     attribute_hash: str | None = Field(default=None)
 
@@ -33,7 +36,6 @@ class BaseModel(SQLModel):
         nullable=False, sa_type=DateTime(timezone=True)
     )
     active_to: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
-    deleted_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
 
     created_at: datetime | None = Field(
         exclude=True,
@@ -53,8 +55,14 @@ class BaseModel(SQLModel):
     )
 
     @classmethod
-    def upsert(cls, *entities: T) -> list[T]:
-        """Upsert multiple entities into the database."""
+    def upsert(cls, *entities: T) -> dict[str, T]:
+        """Upsert multiple entities into the database.
+
+        Returns
+        -------
+        dict[str, T], maps key_hash the upserted entity
+
+        """
         return Upserter(entities=entities).scd2()
 
     @classmethod
@@ -102,15 +110,12 @@ class BaseModel(SQLModel):
                 "updated_at",
                 "active_from",
                 "active_to",
-                "deleted_at",
             ]
         )
 
     @classmethod
     def attribute_keys(cls) -> set[str]:
-        return set(cls.keys()) - set(cls.business_keys()) - set(
-            cls.generated_keys()
-        ) | {"deleted_at"}
+        return set(cls.keys()) - set(cls.business_keys()) - set(cls.generated_keys())
 
     @cached_property
     def business_key_values(self) -> list[str]:
@@ -122,48 +127,23 @@ class BaseModel(SQLModel):
         """Get the attribute values of the entity."""
         return [str(getattr(self, key)) for key in sorted(self.attribute_keys())]
 
-    @classmethod
-    def compute_key_hash(cls, entity: PydanticModel | dict[str, Any]) -> str:
-        """Publically available class method to compute the key hash for an entity.
-
-        Parameters
-        ----------
-        entity : PydanticModel | dict[str, Any]
-            Entity to compute hash for. Can be a Pydantic model
-            (a base model or sqlmodel), or a dict (the dump).
-
-        Returns
-        -------
-        str sha256 hash
-
-        """
-        if isinstance(entity, PydanticModel):
-            values = [str(getattr(entity, key)) for key in cls.business_keys()]
-        else:
-            values = [str(entity[key]) for key in cls.business_keys()]
-        return sha256(cls.HASH_SEPARATOR.join(values).encode()).hexdigest()
-
-    @classmethod
-    def _compute_attribute_hash(cls, entity: PydanticModel | dict[str, Any]) -> str:
-        if isinstance(entity, PydanticModel):
-            values = [str(getattr(entity, key)) for key in cls.attribute_keys()]
-        else:
-            values = [str(entity[key]) for key in cls.attribute_keys()]
-        return sha256(cls.HASH_SEPARATOR.join(values).encode()).hexdigest()
-
-    @classmethod
-    def compute_id(cls, entity: PydanticModel | dict[str, Any]) -> str:
-        values = [cls.compute_key_hash(entity), cls._compute_attribute_hash(entity)]
-        return sha256(cls.HASH_SEPARATOR.join(values).encode()).hexdigest()
-
     @field_serializer("attribute_hash")
     def _attribute_hash_serializer(self, _: str | None) -> str:
-        return self._compute_attribute_hash(self)
+        return sha256(
+            self.HASH_SEPARATOR.join(self.attribute_values).encode()
+        ).hexdigest()
 
     @field_serializer("key_hash")
     def _key_hash_serializer(self, _: str | None) -> str:
-        return self.compute_key_hash(self)
+        return self.compute_key_hash()
 
-    @field_serializer("id")
-    def _id(self, _: str | None) -> str:
-        return self.compute_id(self)
+    def compute_key_hash(self) -> None:
+        """Compute the key hash of the entity.
+
+        Note that untill an entity is stored in DB, the key_hash property is set to
+        None. Therefor, to access the key_hash of a not-yet stored entity, one should
+        use this method.
+        """
+        return sha256(
+            self.HASH_SEPARATOR.join(self.business_key_values).encode()
+        ).hexdigest()
