@@ -47,7 +47,7 @@ class Upserter:
         - For all entities in target:
             - If key_hash not in source, the entity is deleted
                 - Set active_to
-            - If attribute_hash not in source, the entity is updated
+            - If attribute_hash_scd2 not in source, the entity is updated
                 - Set active_to
         - For all entities in source:
             - If key hash not in target (with filter on active_to),
@@ -85,7 +85,9 @@ class Upserter:
                         # Is deleted
                         self.entity_class.key_hash.not_in(self.key_hashes),
                         # Is updated
-                        self.entity_class.attribute_hash.not_in(self.attribute_hashes),
+                        self.entity_class.attribute_hash_scd2.not_in(
+                            self.attribute_hashes_scd2
+                        ),
                     ),
                     # Only close active rows
                     self.entity_class.active_to.is_(None),
@@ -100,8 +102,8 @@ class Upserter:
         return [row["key_hash"] for row in self.data]
 
     @cached_property
-    def attribute_hashes(self) -> list[str]:
-        return [row["attribute_hash"] for row in self.data]
+    def attribute_hashes_scd2(self) -> list[str]:
+        return [row["attribute_hash_scd2"] for row in self.data]
 
     def create_rows_for_updated_and_new_entities(self) -> None:
         existing_active_key_hashes = [

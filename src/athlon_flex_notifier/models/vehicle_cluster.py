@@ -47,6 +47,23 @@ class VehicleCluster(BaseModel, table=True):
     def business_keys() -> list[str]:
         return ["make", "model"]
 
+    @staticmethod
+    def scd1_attribute_keys() -> list[str]:
+        """Any attributes that change based on any of the Vehicles available.
+
+        Tracking history of these attributes would mean a new version whenever any
+        of the vehicles in the cluster changes. This is not desired.
+        """
+        return [
+            "first_vehicle_id",
+            "latest_model_year",
+            "vehicle_count",
+            "min_price_in_euro_per_month",
+            "fiscal_value_in_euro",
+            "addition_percentage",
+            "max_co2_emission",
+        ]
+
     @classmethod
     def _from_base(cls, vehicle_cluster_base: VehicleClusterBase) -> "VehicleCluster":
         """Create a SQLModel instance from an API option."""
