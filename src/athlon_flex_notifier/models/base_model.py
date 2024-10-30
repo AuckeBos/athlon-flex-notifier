@@ -23,25 +23,49 @@ class BaseModel(SQLModel):
     - key_hash is a computed sha256 hash of the business keys
     - attribute_hash is a computed sha256 hash of the attribute values
     - id is the technical key, and a sha256 of the key_hash and attribute_hash
+
+    KNOWN ISSUES:
+        - sort_order doesn't work: https://github.com/fastapi/sqlmodel/issues/542
+            Kept in code, for future reference
+        - alias doesn't work: https://github.com/fastapi/sqlmodel/discussions/725
+            https://stackoverflow.com/questions/77819208/how-can-i-use-alias-in-sqlmodel-library
+            Removed from code, to prevent unclarity
     """
 
     HASH_SEPARATOR: ClassVar[str] = "-"
     id: UUID = Field(
-        primary_key=True, sa_type=SQLAlchemyUUID(as_uuid=True), default_factory=uuid4
+        primary_key=True,
+        sa_type=SQLAlchemyUUID(as_uuid=True),
+        default_factory=uuid4,
     )
-    key_hash: str | None = Field(default=None)
-    attribute_hash: str | None = Field(default=None)
+    key_hash: str | None = Field(
+        default=None,
+        sa_column_kwargs={"sort_order": 90},
+    )
+    attribute_hash: str | None = Field(
+        default=None,
+        sa_column_kwargs={"sort_order": 91},
+    )
 
     active_from: datetime | None = Field(
-        nullable=False, sa_type=DateTime(timezone=True)
+        nullable=False,
+        sa_type=DateTime(timezone=True),
+        sa_column_kwargs={"sort_order": 92},
     )
-    active_to: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
+    active_to: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),
+        sa_column_kwargs={"sort_order": 93},
+    )
 
     created_at: datetime | None = Field(
         exclude=True,
         default=None,
         sa_type=DateTime(timezone=True),
-        sa_column_kwargs={"server_default": func.now()},
+        sa_column_kwargs={
+            "server_default": func.now(),
+            "sort_order": 94,
+        },
     )
     updated_at: datetime | None = Field(
         exclude=True,
@@ -51,6 +75,7 @@ class BaseModel(SQLModel):
             "onupdate": func.now(),
             "server_default": func.now(),
             "server_onupdate": func.now(),
+            "sort_order": 95,
         },
     )
 

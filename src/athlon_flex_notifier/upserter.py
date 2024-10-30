@@ -68,9 +68,7 @@ class Upserter:
         self.session.commit()
         self.session.close()
         # Reload from DB, to ensure all attributes are up-to-date
-        result = self.entity_class.get(
-            key_hashes=[row["key_hash"] for row in self.data]
-        )
+        result = self.entity_class.get(key_hashes=self.key_hashes)
         if len(result) != len(self.data):
             msg = f"Upserted {len(result)} entities, expected {len(self.data)}"
             raise RuntimeError(msg)
@@ -81,6 +79,8 @@ class Upserter:
             update(self.entity_class)
             .where(
                 and_(
+                    # todo: when scd1 and scd2 are supported, this doesnt work
+                    # we should check for the concat of key,att hash instead
                     or_(
                         # Is deleted
                         self.entity_class.key_hash.not_in(self.key_hashes),
@@ -104,14 +104,16 @@ class Upserter:
         return [row["attribute_hash"] for row in self.data]
 
     def create_rows_for_updated_and_new_entities(self) -> None:
-        existing_key_hashes = [
+        existing_active_key_hashes = [
             item[0]
             for item in self.session.exec(
                 select(self.entity_class.key_hash).distinct()
             ).all()
         ]
         new_and_updated_entities = [
-            row for row in self.data if row["key_hash"] not in existing_key_hashes
+            row
+            for row in self.data
+            if row["key_hash"] not in existing_active_key_hashes
         ]
         if new_and_updated_entities:
             self.session.exec(
