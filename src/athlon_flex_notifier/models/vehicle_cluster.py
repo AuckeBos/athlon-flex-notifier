@@ -1,11 +1,12 @@
 from typing import TYPE_CHECKING
 
 from athlon_flex_api.models.vehicle_cluster import VehicleCluster as VehicleClusterBase
+from kink import inject
 from sqlmodel import Relationship
 
 from athlon_flex_notifier.models.base_model import BaseModel
-from athlon_flex_notifier.models.option import Option
 from athlon_flex_notifier.models.vehicle import Vehicle
+from athlon_flex_notifier.upserter import Upserter
 
 if TYPE_CHECKING:
     from athlon_flex_notifier.models.vehicle_availability import VehicleAvailability
@@ -47,6 +48,23 @@ class VehicleCluster(BaseModel, table=True):
     def business_keys() -> list[str]:
         return ["make", "model"]
 
+    @staticmethod
+    def scd1_attribute_keys() -> list[str]:
+        """Any attributes that change based on any of the Vehicles available.
+
+        Tracking history of these attributes would mean a new version whenever any
+        of the vehicles in the cluster changes. This is not desired.
+        """
+        return [
+            "first_vehicle_id",
+            "latest_model_year",
+            "vehicle_count",
+            "min_price_in_euro_per_month",
+            "fiscal_value_in_euro",
+            "addition_percentage",
+            "max_co2_emission",
+        ]
+
     @classmethod
     def _from_base(cls, vehicle_cluster_base: VehicleClusterBase) -> "VehicleCluster":
         """Create a SQLModel instance from an API option."""
@@ -73,8 +91,9 @@ class VehicleCluster(BaseModel, table=True):
         return vehicle_cluster
 
     @classmethod
+    @inject
     def from_bases(
-        cls, *vehicle_cluster_bases: VehicleClusterBase
+        cls, vehicle_cluster_bases: list[VehicleClusterBase], upserter: Upserter
     ) -> list["VehicleCluster"]:
         """Create instances and upsert them."""
         vehicle_clusters = {
@@ -84,7 +103,7 @@ class VehicleCluster(BaseModel, table=True):
                 for vehicle_cluster in vehicle_cluster_bases
             ]
         }
-        vehicle_clusters_upserted = cls.upsert(*vehicle_clusters.values())
+        vehicle_clusters_upserted = upserter.upsert(list(vehicle_clusters.values()))
         # set the correct vehicle_cluster_id on the vehicles
         vehicles = {}
         for cluster_key_hash, cluster in vehicle_clusters.items():
@@ -93,14 +112,14 @@ class VehicleCluster(BaseModel, table=True):
                     cluster_key_hash
                 ].id
                 vehicles[vehicle.compute_key_hash()] = vehicle
-        vehicles_upserted = Vehicle.upsert(*vehicles.values())
+        vehicles_upserted = upserter.upsert(list(vehicles.values()))
         # set the correct vehicle_id on the options
         options = []
         for vehicle_key_hash, vehicle in vehicles.items():
             for option in vehicle.options:
                 option.vehicle_id = vehicles_upserted[vehicle_key_hash].id
                 options.append(option)
-        Option.upsert(*options)
+        upserter.upsert(list(options))
         return VehicleCluster.all()
 
     @property
