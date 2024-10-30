@@ -1,12 +1,14 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
+from kink import inject
 from sqlalchemy import DateTime
 from sqlmodel import Field, Relationship
 
 from athlon_flex_notifier.models.base_model import BaseModel
 from athlon_flex_notifier.models.vehicle import Vehicle
 from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
+from athlon_flex_notifier.upserter import Upserter
 from athlon_flex_notifier.utils import now
 
 
@@ -66,17 +68,22 @@ class VehicleAvailability(BaseModel, table=True):
         )
 
     @classmethod
-    def from_vehicles(cls, *vehicles: Vehicle) -> "VehicleAvailability":
+    @inject
+    def from_vehicles(
+        cls, upserter: Upserter, vehicles: Vehicle
+    ) -> "VehicleAvailability":
         """Create SQLModel instances for a list of vehicles, and save them in DB."""
-        return cls.upsert(*[cls._from_vehicle(vehicle) for vehicle in vehicles])
+        return upserter.upsert(*[cls._from_vehicle(vehicle) for vehicle in vehicles])
 
-    def deactivate(self) -> None:
+    @inject
+    def deactivate(self, upserter: Upserter) -> None:
         self.available_until = now()
-        self.upsert(self)
+        upserter.upsert([self])
 
-    def mark_as_notified(self) -> None:
+    @inject
+    def mark_as_notified(self, upserter: Upserter) -> None:
         self.notified = True
-        self.upsert(self)
+        upserter.upsert([self])
 
     def __str__(self) -> str:
         return f"{self.vehicle!s} - available since {self.available_since}"

@@ -39,7 +39,7 @@ class VehicleAvailabilityServices:
                     del availabilities_to_deactivate[availability.key_hash]
                     continue
                 create_availabilities_for.append(vehicle)
-        VehicleAvailability.from_vehicles(*create_availabilities_for)
+        VehicleAvailability.from_vehicles(create_availabilities_for)
         for availability in availabilities_to_deactivate.values():
             availability.deactivate()
             self.logger.info("Vehicle is no longer available: %s", availability)
@@ -55,7 +55,7 @@ class VehicleAvailabilityServices:
                 )
             ).vehicle_clusters
         with time_it("Upserting clusters"):
-            clusters = VehicleCluster.from_bases(*base_clusters)
+            clusters = VehicleCluster.from_bases(base_clusters)
         self.logger.info(
             "Found %s clusters; %s vehicles;",
             len(base_clusters),

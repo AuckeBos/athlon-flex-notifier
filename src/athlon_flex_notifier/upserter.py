@@ -1,10 +1,9 @@
 import contextlib
 from datetime import datetime
-from functools import cached_property
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from kink import inject
-from sqlalchemy import Engine, and_, or_, select, update
+from sqlalchemy import Engine, and_, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import Session
 
@@ -14,102 +13,154 @@ if TYPE_CHECKING:
     from athlon_flex_notifier.models.base_model import BaseModel
 
 T = TypeVar("T", bound="BaseModel")
+from sqlalchemy.sql.elements import ColumnElement
 
 
+@inject
 class Upserter:
     """Upsert data into the database, using SCD2."""
 
     data: list[dict[str, Any]]
     entity_class: T
     session: Session | None = None
-    database: Engine
     timestamp: datetime
 
     @inject
-    def __init__(self, database: Engine, entities: list[T]) -> None:
-        """Initialize the upserter.
+    def upsert(self, entities: list[T] = None, database: Engine = None) -> dict[str, T]:
+        """Upsert multiple entities into the database.
 
-        Dump the entities into a list of dicts, setting the active_from timestamp.
-        """
-        self.database = database
-        self.timestamp = now()
-        self.data = [
-            {**entity.model_dump(), "active_from": self.timestamp}
-            for entity in entities
-        ]
-        if len(entities) > 1:
-            self.entity_class = type(entities[0])
-
-    def scd2(self) -> dict[str, T]:
-        """Perform SCD2 upserts.
-
-        This means:
-        - For all entities in target:
-            - If key_hash not in source, the entity is deleted
-                - Set active_to
-            - If attribute_hash_scd2 not in source, the entity is updated
-                - Set active_to
-        - For all entities in source:
-            - If key hash not in target (with filter on active_to),
-                the entity is inserted or updated
-                - Insert record, with active_from
+        - Update records in-place if scd1 attributes are updated
+        - Update records by closing and creating new rows if scd2 attributes are updated
 
         Returns
         -------
         dict[str, T], maps key_hash the upserted entity
 
         """
+        self.timestamp = now()
+        self.data = [
+            {**entity.model_dump(), "active_from": self.timestamp}
+            for entity in entities
+        ]
         if not self.data:
-            return []
+            return {}
+        if len(entities) > 1:
+            self.entity_class = type(entities[0])
         if not self.session:
-            self.session = Session(self.database, expire_on_commit=False)
-        self.close_active_rows_of_updated_and_deleted_entities()
-        self.create_rows_for_updated_and_new_entities()
+            self.session = Session(database, expire_on_commit=False)
+        self.scd1()
+        self.scd2()
         self.session.commit()
         self.session.close()
         # Reload from DB, to ensure all attributes are up-to-date
         result = self.entity_class.get(key_hashes=self.key_hashes)
         if len(result) != len(self.data):
-            msg = f"Upserted {len(result)} entities, expected {len(self.data)}"
+            msg = f"Found {len(result)} entities after upsert, expecteded {len(self.data)}"
             raise RuntimeError(msg)
         return {entity.key_hash: entity for entity in result}
 
-    def close_active_rows_of_updated_and_deleted_entities(self) -> None:
+    def scd1(self) -> None:
+        """
+        Update rows in the target in-place with updates of the scd1 attributes.
+        """
+        data = [
+            {key: row[key] for key in self.entity_class.scd1_attribute_keys()}
+            for row in self.data
+        ]
         statement = (
             update(self.entity_class)
             .where(
                 and_(
-                    # todo: when scd1 and scd2 are supported, this doesnt work
-                    # we should check for the concat of key,att hash instead
-                    or_(
-                        # Is deleted
-                        self.entity_class.key_hash.not_in(self.key_hashes),
-                        # Is updated
-                        self.entity_class.attribute_hash_scd2.not_in(
-                            self.attribute_hashes_scd2
-                        ),
-                    ),
-                    # Only close active rows
-                    self.entity_class.active_to.is_(None),
+                    self.scd1_attributes_updated(),
+                    self.entity_class.active_to.is_(None),  # Only update active rows
+                )
+            )
+            # todo: this doesnt work
+            # could we do an INSERT ON CONFLICT DO UPDATE, and set a unique constriant
+            # on the key_hash and attribute_hash_scd1?
+            # we also do an SCD2 insert here. Is that OK?
+            .values(data)
+        )
+        self.session.exec(statement)
+
+    def scd1_attributes_updated(self) -> ColumnElement:
+        """A where clause to check if the scd1 attributes are updated.
+
+        This is true if the key_hash is in the new key hashes (ie the entity is not deleted),
+        and the combination of key_hash and attribute_hash_scd1 is not in the new scd1 attributes.
+        This means that in the new data, the scd1 attributes are updated.
+        """
+        new_scd1 = [
+            "-".join([row["key_hash"], row["attribute_hash_scd1"]]) for row in self.data
+        ]
+        existing_scd1 = func.CONCAT_WS(
+            "-",
+            self.entity_class.key_hash,
+            self.entity_class.attribute_hash_scd1,
+        )
+        new_key_hashes = self.key_hashes
+        existing_key_hashes = self.entity_class.key_hash
+        return and_(
+            existing_key_hashes.in_(new_key_hashes),
+            existing_scd1.not_in(new_scd1),
+        )
+
+    @property
+    def key_hashes(self) -> list[str]:
+        return [row["key_hash"] for row in self.data]
+
+    def scd2(self) -> None:
+        """
+        Update rows in the target in-place with updates of the scd2 attributes.
+        """
+        self.close_active_rows_of_updated_and_deleted_entities()
+        self.create_rows_for_updated_and_new_entities()
+
+    def close_active_rows_of_updated_and_deleted_entities(self) -> None:
+        """Close all rows that are deleted or updated scd2.
+
+        For updated entities, new rows are added in create_rows_for_updated_and_new_entities
+        """
+        statement = (
+            update(self.entity_class)
+            .where(
+                and_(
+                    self.scd2_attributes_updated_or_entity_deleted(),
+                    self.entity_class.active_to.is_(None),  # Only close active rows
                 )
             )
             .values(active_to=self.timestamp)
         )
         self.session.exec(statement)
 
-    @cached_property
-    def key_hashes(self) -> list[str]:
-        return [row["key_hash"] for row in self.data]
+    def scd2_attributes_updated_or_entity_deleted(self) -> ColumnElement:
+        """A where clause to check if the scd2 attributes are updated or the entity is deleted.
 
-    @cached_property
-    def attribute_hashes_scd2(self) -> list[str]:
-        return [row["attribute_hash_scd2"] for row in self.data]
+        This is true if the key_hash-attribute_hash_scd2 combination is not in the new scd2 attributes.
+        This happens that either the key_hash is not in the new key hashes (ie the entity is deleted),
+        or the attribute_hash_scd2 is not in the new scd2 attributes (ie the entity is updated).
+        """
+        new_scd2 = [
+            "-".join([row["key_hash"], row["attribute_hash_scd2"]]) for row in self.data
+        ]
+        existing_scd2 = func.CONCAT_WS(
+            "-",
+            self.entity_class.key_hash,
+            self.entity_class.attribute_hash_scd2,
+        )
+        return existing_scd2.not_in(new_scd2)
 
     def create_rows_for_updated_and_new_entities(self) -> None:
+        """For any row that is new or updated, create a new row in the target table.
+
+        # A: Any key_hashes that did already exist will not be included in this list,
+        because active_to is not None. Therefor, we will insert records for updated entites
+        as well as new entities.
+        """
         existing_active_key_hashes = [
             item[0]
             for item in self.session.exec(
-                select(self.entity_class.key_hash).distinct()
+                select(self.entity_class.key_hash).distinct()  # A
             ).all()
         ]
         new_and_updated_entities = [
@@ -117,10 +168,10 @@ class Upserter:
             for row in self.data
             if row["key_hash"] not in existing_active_key_hashes
         ]
-        if new_and_updated_entities:
-            self.session.exec(
-                insert(self.entity_class).values(new_and_updated_entities)
-            )
+        if not new_and_updated_entities:
+            return
+        statement = insert(self.entity_class).values(new_and_updated_entities)
+        self.session.exec(statement)
 
     def __del__(self) -> None:
         """Automatically close the session when the object is garbage collected."""

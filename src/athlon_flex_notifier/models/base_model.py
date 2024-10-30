@@ -9,7 +9,6 @@ from sqlalchemy import UUID as SQLAlchemyUUID
 from sqlalchemy import DateTime, Engine, select
 from sqlmodel import Field, Session, SQLModel, func
 
-from athlon_flex_notifier.upserter import Upserter
 
 T = TypeVar("T", bound="BaseModel")
 
@@ -126,17 +125,6 @@ class BaseModel(SQLModel):
         """Load all entities from the database."""
         with Session(database) as session:
             return [item[0] for item in session.exec(select(cls)).unique().all()]
-
-    @classmethod
-    def upsert(cls, *entities: T) -> dict[str, T]:
-        """Upsert multiple entities into the database.
-
-        Returns
-        -------
-        dict[str, T], maps key_hash the upserted entity
-
-        """
-        return Upserter(entities=entities).scd2()
 
     @classmethod
     def keys(cls) -> list[str]:
