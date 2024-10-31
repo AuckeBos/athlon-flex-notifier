@@ -69,7 +69,7 @@ class VehicleCluster(BaseModel, table=True):
     def _from_base(cls, vehicle_cluster_base: VehicleClusterBase) -> "VehicleCluster":
         """Create a SQLModel instance from an API option."""
         data = {
-            "first_vehicle_id": vehicle_cluster_base.firstVehicleId + "test!!",
+            "first_vehicle_id": vehicle_cluster_base.firstVehicleId,
             "external_type_id": vehicle_cluster_base.externalTypeId,
             "make": vehicle_cluster_base.make,
             "model": vehicle_cluster_base.model,
@@ -93,7 +93,7 @@ class VehicleCluster(BaseModel, table=True):
     @classmethod
     @inject
     def from_bases(
-        cls, vehicle_cluster_bases: VehicleClusterBase, upserter: Upserter
+        cls, vehicle_cluster_bases: list[VehicleClusterBase], upserter: Upserter
     ) -> list["VehicleCluster"]:
         """Create instances and upsert them."""
         vehicle_clusters = {

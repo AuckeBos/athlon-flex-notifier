@@ -70,7 +70,7 @@ class VehicleAvailability(BaseModel, table=True):
     @classmethod
     @inject
     def from_vehicles(
-        cls, upserter: Upserter, vehicles: Vehicle
+        cls, upserter: Upserter, vehicles: list[Vehicle]
     ) -> "VehicleAvailability":
         """Create SQLModel instances for a list of vehicles, and save them in DB."""
         return upserter.upsert(*[cls._from_vehicle(vehicle) for vehicle in vehicles])

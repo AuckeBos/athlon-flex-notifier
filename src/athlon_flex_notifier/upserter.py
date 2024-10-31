@@ -45,7 +45,7 @@ class Upserter:
         ]
         if not self.data:
             return {}
-        if len(entities) > 1:
+        if len(entities):
             self.entity_class = type(entities[0])
         if not self.session:
             self.session = Session(database, expire_on_commit=False)
@@ -61,11 +61,14 @@ class Upserter:
         return {entity.key_hash: entity for entity in result}
 
     def scd1(self) -> None:
-        """Update rows in the target in-place with updates of the scd1 attributes."""
-        # todo: test this. apply to scd2 as well
-        # https://docs.sqlalchemy.org/en/20/tutorial/data_update.html#the-update-sql-expression-construct
+        """Update rows in the target in-place with updates of the scd1 attributes.
+
+        Only update rows that already exist. New rows will be added by scd2. 1
+        Only update rows if the scd1 hash has changed.
+        Only update active rows
+        """
         keys = [
-            self.entity_class.scd1_attribute_keys(),
+            *self.entity_class.scd1_attribute_keys(),
             "key_hash",
             "attribute_hash_scd1",
         ]
@@ -77,35 +80,13 @@ class Upserter:
                     self.entity_class.key_hash == bindparam("key_hash"),
                     self.entity_class.attribute_hash_scd1
                     != bindparam("attribute_hash_scd1"),
+                    self.entity_class.active_to.is_(None),
                 )
             )
             .values(**{key: bindparam(key) for key in keys})
+            .execution_options(synchronize_session=False)
         )
-        self.session.exec(statement, data)
-
-    def scd1_attributes_updated(self) -> ColumnElement:
-        """A where clause to check if the scd1 attributes are updated.
-
-        This is true if the key_hash is in the new key hashes (ie the entity is not
-        deleted), and the combination of key_hash and attribute_hash_scd1 is not
-        in the new scd1 attributes. This means that in the new data,
-        the scd1 attributes are updated.
-
-        """  # noqa: D401
-        new_scd1 = [
-            "-".join([row["key_hash"], row["attribute_hash_scd1"]]) for row in self.data
-        ]
-        existing_scd1 = func.CONCAT_WS(
-            "-",
-            self.entity_class.key_hash,
-            self.entity_class.attribute_hash_scd1,
-        )
-        new_key_hashes = self.key_hashes
-        existing_key_hashes = self.entity_class.key_hash
-        return and_(
-            existing_key_hashes.in_(new_key_hashes),
-            existing_scd1.not_in(new_scd1),
-        )
+        self.session.connection().execute(statement, data)
 
     @property
     def key_hashes(self) -> list[str]:
