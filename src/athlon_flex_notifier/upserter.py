@@ -3,8 +3,9 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from kink import inject
-from sqlalchemy import Engine, and_, func, select, update
+from sqlalchemy import Engine, and_, bindparam, func, select, update
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.sql.elements import ColumnElement
 from sqlmodel import Session
 
 from athlon_flex_notifier.utils import now
@@ -12,8 +13,8 @@ from athlon_flex_notifier.utils import now
 if TYPE_CHECKING:
     from athlon_flex_notifier.models.base_model import BaseModel
 
+
 T = TypeVar("T", bound="BaseModel")
-from sqlalchemy.sql.elements import ColumnElement
 
 
 @inject
@@ -60,36 +61,37 @@ class Upserter:
         return {entity.key_hash: entity for entity in result}
 
     def scd1(self) -> None:
-        """
-        Update rows in the target in-place with updates of the scd1 attributes.
-        """
-        data = [
-            {key: row[key] for key in self.entity_class.scd1_attribute_keys()}
-            for row in self.data
+        """Update rows in the target in-place with updates of the scd1 attributes."""
+        # todo: test this. apply to scd2 as well
+        # https://docs.sqlalchemy.org/en/20/tutorial/data_update.html#the-update-sql-expression-construct
+        keys = [
+            self.entity_class.scd1_attribute_keys(),
+            "key_hash",
+            "attribute_hash_scd1",
         ]
+        data = [{key: row[key] for key in keys} for row in self.data]
         statement = (
             update(self.entity_class)
             .where(
                 and_(
-                    self.scd1_attributes_updated(),
-                    self.entity_class.active_to.is_(None),  # Only update active rows
+                    self.entity_class.key_hash == bindparam("key_hash"),
+                    self.entity_class.attribute_hash_scd1
+                    != bindparam("attribute_hash_scd1"),
                 )
             )
-            # todo: this doesnt work
-            # could we do an INSERT ON CONFLICT DO UPDATE, and set a unique constriant
-            # on the key_hash and attribute_hash_scd1?
-            # we also do an SCD2 insert here. Is that OK?
-            .values(data)
+            .values(**{key: bindparam(key) for key in keys})
         )
-        self.session.exec(statement)
+        self.session.exec(statement, data)
 
     def scd1_attributes_updated(self) -> ColumnElement:
         """A where clause to check if the scd1 attributes are updated.
 
-        This is true if the key_hash is in the new key hashes (ie the entity is not deleted),
-        and the combination of key_hash and attribute_hash_scd1 is not in the new scd1 attributes.
-        This means that in the new data, the scd1 attributes are updated.
-        """
+        This is true if the key_hash is in the new key hashes (ie the entity is not
+        deleted), and the combination of key_hash and attribute_hash_scd1 is not
+        in the new scd1 attributes. This means that in the new data,
+        the scd1 attributes are updated.
+
+        """  # noqa: D401
         new_scd1 = [
             "-".join([row["key_hash"], row["attribute_hash_scd1"]]) for row in self.data
         ]
@@ -110,9 +112,7 @@ class Upserter:
         return [row["key_hash"] for row in self.data]
 
     def scd2(self) -> None:
-        """
-        Update rows in the target in-place with updates of the scd2 attributes.
-        """
+        """Update rows in the target in-place with updates of the scd2 attributes."""
         self.close_active_rows_of_updated_and_deleted_entities()
         self.create_rows_for_updated_and_new_entities()
 
@@ -134,12 +134,13 @@ class Upserter:
         self.session.exec(statement)
 
     def scd2_attributes_updated_or_entity_deleted(self) -> ColumnElement:
-        """A where clause to check if the scd2 attributes are updated or the entity is deleted.
+        """A clause to check if the scd2 sttrs are updated or the entity is deleted.
 
-        This is true if the key_hash-attribute_hash_scd2 combination is not in the new scd2 attributes.
-        This happens that either the key_hash is not in the new key hashes (ie the entity is deleted),
-        or the attribute_hash_scd2 is not in the new scd2 attributes (ie the entity is updated).
-        """
+        This is true if the key_hash-attribute_hash_scd2 combination is not in the new
+        scd2 attributes. This happens that either the key_hash is not in the new key
+        hashes (ie the entity is deleted),or the attribute_hash_scd2 is not in the
+        new scd2 attributes (ie the entity is updated).
+        """  # noqa: D401
         new_scd2 = [
             "-".join([row["key_hash"], row["attribute_hash_scd2"]]) for row in self.data
         ]
@@ -154,8 +155,8 @@ class Upserter:
         """For any row that is new or updated, create a new row in the target table.
 
         # A: Any key_hashes that did already exist will not be included in this list,
-        because active_to is not None. Therefor, we will insert records for updated entites
-        as well as new entities.
+        because active_to is not None. Therefor, we will insert records for updated
+        entites as well as new entities.
         """
         existing_active_key_hashes = [
             item[0]
