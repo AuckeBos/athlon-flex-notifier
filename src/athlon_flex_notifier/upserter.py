@@ -3,9 +3,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from kink import inject
-from sqlalchemy import Engine, and_, bindparam, func, select, update
+from sqlalchemy import Engine, and_, bindparam, select, update
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.sql.elements import ColumnElement
 from sqlmodel import Session
 
 from athlon_flex_notifier.utils import now
@@ -27,7 +26,7 @@ class Upserter:
     timestamp: datetime
 
     @inject
-    def upsert(self, entities: list[T] = None, database: Engine = None) -> dict[str, T]:
+    def upsert(self, entities: list[T], database: Engine = None) -> dict[str, T]:
         """Upsert multiple entities into the database.
 
         - Update records in-place if scd1 attributes are updated
@@ -63,9 +62,10 @@ class Upserter:
     def scd1(self) -> None:
         """Update rows in the target in-place with updates of the scd1 attributes.
 
-        Only update rows that already exist. New rows will be added by scd2. 1
+        Only update rows that already exist. New rows will be added by scd2.
         Only update rows if the scd1 hash has changed.
         Only update active rows
+        Only set scd1 attributes and attribute_hash_scd1
         """
         keys = [
             *self.entity_class.scd1_attribute_keys(),
@@ -94,43 +94,52 @@ class Upserter:
 
     def scd2(self) -> None:
         """Update rows in the target in-place with updates of the scd2 attributes."""
-        self.close_active_rows_of_updated_and_deleted_entities()
+        self.close_active_rows_of_updated_entities()
+        self.close_active_rows_of_deleted_entities()
         self.create_rows_for_updated_and_new_entities()
 
-    def close_active_rows_of_updated_and_deleted_entities(self) -> None:
-        """Close all rows that are deleted or updated scd2.
+    def close_active_rows_of_updated_entities(self) -> None:
+        """Close active rows that have changed scd2 attributes.
 
-        For updated entities, new rows are added in create_rows_for_updated_and_new_entities
+        Closing means setting active_to to the current timestamp.
+        Only close rows where the key_hash still exsits, and the scd2 hash has changed
         """
+        keys = ["key_hash", "attribute_hash_scd2"]
+        data = [{f"{key}_": row[key] for key in keys} for row in self.data]
         statement = (
             update(self.entity_class)
             .where(
                 and_(
-                    self.scd2_attributes_updated_or_entity_deleted(),
-                    self.entity_class.active_to.is_(None),  # Only close active rows
+                    self.entity_class.key_hash == bindparam("key_hash_"),
+                    self.entity_class.attribute_hash_scd2
+                    != bindparam("attribute_hash_scd2_"),
+                    self.entity_class.active_to.is_(None),
+                )
+            )
+            .values(
+                active_to=self.timestamp,
+            )
+            .execution_options(synchronize_session=False)
+        )
+        self.session.connection().execute(statement, data)
+
+    def close_active_rows_of_deleted_entities(self) -> None:
+        """Close active rows that have been deleted.
+
+        A row is deleted if the key_hash is not in the new data.
+        """
+        new_key_hashes = [row["key_hash"] for row in self.data]
+        statement = (
+            update(self.entity_class)
+            .where(
+                and_(
+                    self.entity_class.key_hash.not_in(new_key_hashes),
+                    self.entity_class.active_to.is_(None),
                 )
             )
             .values(active_to=self.timestamp)
         )
         self.session.exec(statement)
-
-    def scd2_attributes_updated_or_entity_deleted(self) -> ColumnElement:
-        """A clause to check if the scd2 sttrs are updated or the entity is deleted.
-
-        This is true if the key_hash-attribute_hash_scd2 combination is not in the new
-        scd2 attributes. This happens that either the key_hash is not in the new key
-        hashes (ie the entity is deleted),or the attribute_hash_scd2 is not in the
-        new scd2 attributes (ie the entity is updated).
-        """  # noqa: D401
-        new_scd2 = [
-            "-".join([row["key_hash"], row["attribute_hash_scd2"]]) for row in self.data
-        ]
-        existing_scd2 = func.CONCAT_WS(
-            "-",
-            self.entity_class.key_hash,
-            self.entity_class.attribute_hash_scd2,
-        )
-        return existing_scd2.not_in(new_scd2)
 
     def create_rows_for_updated_and_new_entities(self) -> None:
         """For any row that is new or updated, create a new row in the target table.
