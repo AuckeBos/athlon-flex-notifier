@@ -6,6 +6,7 @@ from logging import Logger
 
 from kink import inject
 
+from athlon_flex_notifier.models.views.vehicle_availability import VehicleAvailability
 from athlon_flex_notifier.notifications.email.renderer import Renderer
 from athlon_flex_notifier.notifications.notifier import Notifier
 
@@ -16,7 +17,13 @@ class EmailNotifier(Notifier):
     server: smtplib.SMTP
 
     @inject
-    def __init__(self, logger: Logger, server: smtplib.SMTP) -> None:
+    def __init__(
+        self,
+        availabilities_to_notify: list[VehicleAvailability],
+        logger: Logger,
+        server: smtplib.SMTP,
+    ) -> None:
+        self.availabilities_to_notify = availabilities_to_notify
         self.logger = logger
         self.server = server
 
@@ -37,4 +44,4 @@ class EmailNotifier(Notifier):
 
     @property
     def renderer(self) -> Renderer:
-        return Renderer(vehicle_clusters=self.vehicle_clusters)
+        return Renderer(notifier=self)
