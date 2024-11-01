@@ -1,5 +1,6 @@
 import contextlib
 from datetime import datetime
+from logging import Logger
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from kink import inject
@@ -21,12 +22,15 @@ class Upserter:
     """Upsert data into the database, using SCD2."""
 
     data: list[dict[str, Any]]
+    logger: Logger
     entity_class: T
     session: Session | None = None
     timestamp: datetime
 
     @inject
-    def upsert(self, entities: list[T], database: Engine = None) -> dict[str, T]:
+    def upsert(
+        self, entities: list[T], database: Engine, logger: Logger
+    ) -> dict[str, T]:
         """Upsert multiple entities into the database.
 
         - Update records in-place if scd1 attributes are updated
@@ -38,11 +42,13 @@ class Upserter:
 
         """
         self.timestamp = now()
+        self.logger = logger
         self.data = [
             {**entity.model_dump(), "active_from": self.timestamp}
             for entity in entities
         ]
         if not self.data:
+            self.logger.error("No data to upsert")
             return {}
         if len(entities):
             self.entity_class = type(entities[0])
