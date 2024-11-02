@@ -11,10 +11,10 @@ from sqlmodel import Session
 from athlon_flex_notifier.utils import now
 
 if TYPE_CHECKING:
-    from athlon_flex_notifier.models.base_model import BaseModel
+    from athlon_flex_notifier.models.tables.base_table import BaseTable
 
 
-T = TypeVar("T", bound="BaseModel")
+T = TypeVar("T", bound="BaseTable")
 
 
 @inject
@@ -61,7 +61,7 @@ class Upserter:
         # Reload from DB, to ensure all attributes are up-to-date
         result = self.entity_class.get(key_hashes=self.key_hashes)
         if len(result) != len(self.data):
-            msg = f"Found {len(result)} entities after upsert, expecteded {len(self.data)}"
+            msg = f"Found {len(result)} entities after upsert, expecteded {len(self.data)}"  # noqa: E501
             raise RuntimeError(msg)
         return {entity.key_hash: entity for entity in result}
 

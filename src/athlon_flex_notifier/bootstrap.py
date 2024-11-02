@@ -15,10 +15,7 @@ from sqlalchemy.orm import with_loader_criteria
 from sqlalchemy.orm.session import ORMExecuteState
 from sqlmodel import Session, SQLModel
 
-from athlon_flex_notifier.models.base_model import BaseModel
-from athlon_flex_notifier.notifications.console_notifier import ConsoleNotifier
-from athlon_flex_notifier.notifications.email_notifier import EmailNotifier
-from athlon_flex_notifier.notifications.notifiers import Notifiers
+from athlon_flex_notifier.models.tables.base_table import BaseTable
 
 
 def load_env() -> None:
@@ -37,9 +34,6 @@ def bootstrap_di() -> None:
     )
     _setup_database()
     di[smtplib.SMTP] = lambda _: _smpt_server()
-    di[Notifiers] = lambda di_: Notifiers(
-        notifiers=[ConsoleNotifier(), EmailNotifier(di_)]
-    )
     # Use factory, to retry getting the prefect logger each time
     di.factories[Logger] = lambda _: _get_logger(__name__)
 
@@ -53,10 +47,9 @@ def _setup_database() -> None:
             host=os.getenv("POSTGRES_HOST"),
             port=os.getenv("POSTGRES_PORT"),
             database=os.getenv("POSTGRES_DB"),
-        ),
-        echo=True,
+        )
     )
-    import athlon_flex_notifier.models  # noqa: F401
+    import athlon_flex_notifier.models.tables  # noqa: F401
 
     SQLModel.metadata.create_all(di["database"])
 
@@ -67,7 +60,7 @@ def _exclude_inactive(execute_state: ORMExecuteState) -> None:
     if execute_state.is_select and not include_inactive:
         execute_state.statement = execute_state.statement.options(
             with_loader_criteria(
-                BaseModel,
+                BaseTable,
                 lambda cls: (not hasattr(cls, "active_to")) or cls.active_to.is_(None),
                 include_aliases=True,
             )

@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from datetime import datetime
 from hashlib import sha256
 from typing import ClassVar, TypeVar
@@ -5,15 +6,14 @@ from uuid import UUID, uuid4
 
 from kink import inject
 from pydantic import field_serializer
-from sqlalchemy import UUID as SQLAlchemyUUID
+from sqlalchemy import UUID as SQLAlchemyUUID  # noqa: N811
 from sqlalchemy import DateTime, Engine, select
 from sqlmodel import Field, Session, SQLModel, func
 
+T = TypeVar("T", bound="BaseTable")
 
-T = TypeVar("T", bound="BaseModel")
 
-
-class BaseModel(SQLModel):
+class BaseTable(SQLModel):
     """A Base class for SQLModel.
 
     Implementing classes MUST define business_keys, and
@@ -109,7 +109,7 @@ class BaseModel(SQLModel):
 
     @classmethod
     @inject
-    def get(cls: T, database: Engine, *, key_hashes: list[str]) -> list[T]:
+    def get(cls: T, database: Engine, *, key_hashes: Iterable[str]) -> list[T]:
         """Load entity by list of ids."""
         with Session(database) as session:
             return [

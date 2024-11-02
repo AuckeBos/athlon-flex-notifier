@@ -8,6 +8,6 @@ class ConsoleNotifier(Notifier):
         self.logger.info("The following new vehicles are available:")
         for vehicle_cluster in self.vehicle_clusters:
             self.logger.info("\t %s", vehicle_cluster)
-            for availability in vehicle_cluster.unnotified_availabilities:
+            for availability in self.availabilities_for_cluster(vehicle_cluster):
                 self.logger.info("\t\t %s", availability)
         return True

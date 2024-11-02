@@ -3,11 +3,11 @@ from uuid import UUID
 from athlon_flex_api.models.vehicle import Vehicle as VehicleBase
 from sqlmodel import Field, Relationship
 
-from athlon_flex_notifier.models.base_model import BaseModel
-from athlon_flex_notifier.models.vehicle import Vehicle
+from athlon_flex_notifier.models.tables.base_table import BaseTable
+from athlon_flex_notifier.models.tables.vehicle import Vehicle
 
 
-class Option(BaseModel, table=True):
+class Option(BaseTable, table=True):
     """Vehicle option.
 
     Example: Trekhaak.
@@ -25,11 +25,11 @@ class Option(BaseModel, table=True):
         return ["athlon_id", "vehicle_id"]
 
     @staticmethod
-    def from_base(option_base: VehicleBase.Option) -> "Option":
-        """Create a SQLModel instance from an API vehicle, and upsert it.
+    def create_by_api_response(option_base: VehicleBase.Option) -> "Option":
+        """Create a SQLModel instance from an API reponse.
 
         Note that the vehicle_id is not set here. Since it is required in the
-        DB, this property must be set before the vehicle can be upserted.
+        DB, this property must be set before the option can be upserted.
         """
         data = {
             "athlon_id": option_base.id,

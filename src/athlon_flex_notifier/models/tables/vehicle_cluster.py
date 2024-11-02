@@ -1,18 +1,14 @@
-from typing import TYPE_CHECKING
-
 from athlon_flex_api.models.vehicle_cluster import VehicleCluster as VehicleClusterBase
+from athlon_flex_api.models.vehicle_cluster import VehicleClusters
 from kink import inject
 from sqlmodel import Relationship
 
-from athlon_flex_notifier.models.base_model import BaseModel
-from athlon_flex_notifier.models.vehicle import Vehicle
+from athlon_flex_notifier.models.tables.base_table import BaseTable
+from athlon_flex_notifier.models.tables.vehicle import Vehicle
 from athlon_flex_notifier.upserter import Upserter
 
-if TYPE_CHECKING:
-    from athlon_flex_notifier.models.vehicle_availability import VehicleAvailability
 
-
-class VehicleCluster(BaseModel, table=True):
+class VehicleCluster(BaseTable, table=True):
     """Vehicle Cluster model.
 
     A Cluster defines a vehicle make and type. All registered
@@ -34,11 +30,6 @@ class VehicleCluster(BaseModel, table=True):
     image_uri: str
 
     vehicles: list["Vehicle"] | None = Relationship(
-        back_populates="vehicle_cluster",
-        cascade_delete=True,
-        sa_relationship_kwargs={"lazy": "joined"},
-    )
-    vehicle_availabilities: list["VehicleAvailability"] | None = Relationship(
         back_populates="vehicle_cluster",
         cascade_delete=True,
         sa_relationship_kwargs={"lazy": "joined"},
@@ -66,8 +57,10 @@ class VehicleCluster(BaseModel, table=True):
         ]
 
     @classmethod
-    def _from_base(cls, vehicle_cluster_base: VehicleClusterBase) -> "VehicleCluster":
-        """Create a SQLModel instance from an API option."""
+    def create_by_api_response(
+        cls, vehicle_cluster_base: VehicleClusterBase
+    ) -> "VehicleCluster":
+        """Create a SQLModel instance from an API response."""
         data = {
             "first_vehicle_id": vehicle_cluster_base.firstVehicleId,
             "external_type_id": vehicle_cluster_base.externalTypeId,
@@ -85,22 +78,33 @@ class VehicleCluster(BaseModel, table=True):
         vehicle_cluster = VehicleCluster(**data)
         if vehicle_cluster_base.vehicles:
             vehicle_cluster.vehicles = [
-                Vehicle.from_base(vehicle_base)
+                Vehicle.create_by_api_response(vehicle_base)
                 for vehicle_base in vehicle_cluster_base.vehicles
             ]
         return vehicle_cluster
 
     @classmethod
     @inject
-    def from_bases(
-        cls, vehicle_cluster_bases: list[VehicleClusterBase], upserter: Upserter
+    def store_api_response(
+        cls, vehicle_cluster_bases: VehicleClusters, upserter: Upserter
     ) -> list["VehicleCluster"]:
-        """Create instances and upsert them."""
+        """Create VehicleCluster instances from an API response, and upsert them.
+
+        - Create the VehicleCluster instances, and upsert them
+        - Update the Vehicles of each cluster, setting the correct cluster_id
+            The cluster id was generated in _from_base, but if the cluster
+            is not updated wrt the database, it should be the existing ID.
+        - Upsert the vehicles
+        - Update the options with the correct vehicle_id, same as with vehicles
+        - Upsert the options
+        - Return all active clusters
+
+        """
         vehicle_clusters = {
             cluster.compute_key_hash(): cluster
             for cluster in [
-                cls._from_base(vehicle_cluster)
-                for vehicle_cluster in vehicle_cluster_bases
+                cls.create_by_api_response(vehicle_cluster)
+                for vehicle_cluster in vehicle_cluster_bases.vehicle_clusters
             ]
         }
         vehicle_clusters_upserted = upserter.upsert(list(vehicle_clusters.values()))
@@ -121,24 +125,6 @@ class VehicleCluster(BaseModel, table=True):
                 options.append(option)
         upserter.upsert(list(options))
         return VehicleCluster.all()
-
-    @property
-    def is_available(self) -> bool:
-        return len(self.vehicle_availabilities) > 0
-
-    @property
-    def unnotified_availabilities(self) -> list["VehicleAvailability"]:
-        """All active availabilities that are not notified yet."""
-        return [
-            availability
-            for availability in self.vehicle_availabilities
-            if not availability.notified and availability.is_currently_available
-        ]
-
-    @property
-    def should_notify(self) -> bool:
-        """Notify about a cluster if at least one availability is not notified."""
-        return len(self.unnotified_availabilities) > 0
 
     @property
     def uri(self) -> str:

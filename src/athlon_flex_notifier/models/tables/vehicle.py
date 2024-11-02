@@ -1,18 +1,17 @@
-from typing import TYPE_CHECKING, Any, ClassVar, Optional
+from typing import TYPE_CHECKING, Any, ClassVar
 from uuid import UUID
 
 from athlon_flex_api.models.vehicle import Vehicle as VehicleBase
 from sqlmodel import Field, Relationship
 
-from athlon_flex_notifier.models.base_model import BaseModel
+from athlon_flex_notifier.models.tables.base_table import BaseTable
 
 if TYPE_CHECKING:
-    from athlon_flex_notifier.models.option import Option
-    from athlon_flex_notifier.models.vehicle_availability import VehicleAvailability
-    from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
+    from athlon_flex_notifier.models.tables.option import Option
+    from athlon_flex_notifier.models.tables.vehicle_cluster import VehicleCluster
 
 
-class Vehicle(BaseModel, table=True):
+class Vehicle(BaseTable, table=True):
     """Vehicle model.
 
     A Vehicle defines a specific vehicle configuration.
@@ -72,26 +71,19 @@ class Vehicle(BaseModel, table=True):
         back_populates="vehicle",
         cascade_delete=True,
     )
-    vehicle_availabilities: list["VehicleAvailability"] = Relationship(
-        back_populates="vehicle",
-        cascade_delete=True,
-        sa_relationship_kwargs={
-            "lazy": "joined",
-        },
-    )
 
     @staticmethod
     def business_keys() -> list[str]:
         return ["athlon_id"]
 
     @classmethod
-    def from_base(cls, vehicle_base: VehicleBase) -> "Vehicle":
-        """Create a SQLModel instance from an API vehicle, and upsert it.
+    def create_by_api_response(cls, vehicle_base: VehicleBase) -> "Vehicle":
+        """Create a SQLModel instance by an API response.
 
         Note that the vehicle_cluster_id is not set here. Since it is required in the
         DB, this property must be set before the vehicle can be upserted.
         """
-        from athlon_flex_notifier.models.option import Option
+        from athlon_flex_notifier.models.tables.option import Option
 
         data = {
             "athlon_id": vehicle_base.id,
@@ -144,26 +136,10 @@ class Vehicle(BaseModel, table=True):
         vehicle = Vehicle(**data)
         if vehicle_base.options:
             vehicle.options = [
-                Option.from_base(option_base) for option_base in vehicle_base.options
+                Option.create_by_api_response(option_base)
+                for option_base in vehicle_base.options
             ]
         return vehicle
-
-    @property
-    def active_availability(self) -> Optional["VehicleAvailability"]:
-        """Return the single active availability for this vehicle.
-
-        If no availability is active, return None.
-        If more than one availability is active, raise ValueError.
-        """
-        availabilities = [
-            availability
-            for availability in self.vehicle_availabilities
-            if availability.is_currently_available
-        ]
-        if len(availabilities) > 1:
-            msg = "There is more than one active availability for this vehicle"
-            raise ValueError(msg)
-        return availabilities[0] if availabilities else None
 
     @property
     def has_active_availability(self) -> bool:

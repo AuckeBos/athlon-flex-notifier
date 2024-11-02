@@ -43,7 +43,7 @@
         <th>Available since</th>
         <th>Link</th>            
       </tr>
-      {% for availability in cluster.unnotified_availabilities %}
+      {% for availability in renderer.availabilities_for_cluster(cluster) %}
         <tr>
           <td>{{ availability.vehicle }}</td>
           <td>€{{ renderer.round_or_na(availability.vehicle.fiscal_value_in_euro) }}</td>

@@ -1,3 +1,3 @@
-# athlon-flex-updater
+# athlon-flex-notifier
 
 Describe your project here.
