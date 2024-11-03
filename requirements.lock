@@ -12,7 +12,7 @@
 -e file:.
 aiohappyeyeballs==2.4.3
     # via aiohttp
-aiohttp==3.10.9
+aiohttp==3.10.10
     # via athlon-flex-api
 aiosignal==1.3.1
     # via aiohttp
@@ -22,7 +22,7 @@ alembic==1.13.3
     # via prefect
 annotated-types==0.7.0
     # via pydantic
-anyio==4.6.0
+anyio==4.6.2.post1
     # via httpx
     # via prefect
     # via starlette
@@ -32,7 +32,7 @@ asgi-lifespan==2.1.0
     # via prefect
 async-property==0.2.2
     # via athlon-flex-api
-asyncpg==0.29.0
+asyncpg==0.30.0
     # via prefect
 athlon-flex-api==0.1.8
     # via athlon-flex-notifier
@@ -49,7 +49,7 @@ certifi==2024.8.30
     # via requests
 cffi==1.17.1
     # via cryptography
-charset-normalizer==3.3.2
+charset-normalizer==3.4.0
     # via requests
 click==8.1.7
     # via apprise
@@ -63,9 +63,9 @@ colorama==0.4.6
     # via griffe
 coolname==2.2.0
     # via prefect
-croniter==3.0.3
+croniter==3.0.4
     # via prefect
-cryptography==43.0.1
+cryptography==43.0.3
     # via prefect
 dateparser==1.2.0
     # via prefect
@@ -73,18 +73,18 @@ docker==7.1.0
     # via prefect
 exceptiongroup==1.2.2
     # via prefect
-fastapi==0.115.2
+fastapi==0.115.4
     # via prefect
-frozenlist==1.4.1
+frozenlist==1.5.0
     # via aiohttp
     # via aiosignal
-fsspec==2024.9.0
+fsspec==2024.10.0
     # via prefect
 graphviz==0.20.3
     # via prefect
 greenlet==3.1.1
     # via sqlalchemy
-griffe==1.4.1
+griffe==1.5.1
     # via prefect
 h11==0.14.0
     # via httpcore
@@ -122,15 +122,15 @@ jsonschema==4.23.0
     # via prefect
 jsonschema-specifications==2024.10.1
     # via jsonschema
-kink==0.8.0
+kink==0.8.1
     # via athlon-flex-notifier
-mako==1.3.5
+mako==1.3.6
     # via alembic
 markdown==3.7
     # via apprise
 markdown-it-py==3.0.0
     # via rich
-markupsafe==3.0.1
+markupsafe==3.0.2
     # via jinja2
     # via mako
 mdurl==0.1.2
@@ -142,7 +142,7 @@ nest-asyncio==1.6.0
     # via athlon-flex-api
 oauthlib==3.2.2
     # via requests-oauthlib
-orjson==3.10.7
+orjson==3.10.10
     # via prefect
 packaging==24.1
     # via prefect
@@ -150,11 +150,13 @@ pathspec==0.12.1
     # via prefect
 pendulum==3.0.0
     # via prefect
-prefect==3.0.8
+prefect==3.0.11
     # via athlon-flex-notifier
 prometheus-client==0.21.0
     # via prefect
-psycopg2==2.9.9
+propcache==0.2.0
+    # via yarl
+psycopg2==2.9.10
     # via athlon-flex-notifier
 pycparser==2.22
     # via cffi
@@ -171,7 +173,7 @@ pydantic-core==2.23.4
     # via pydantic
 pydantic-extra-types==2.9.0
     # via prefect
-pydantic-settings==2.5.2
+pydantic-settings==2.6.0
     # via prefect
 pygments==2.18.0
     # via rich
@@ -213,7 +215,7 @@ requests-oauthlib==2.0.0
     # via apprise
 rfc3339-validator==0.1.4
     # via prefect
-rich==13.9.2
+rich==13.9.3
     # via prefect
     # via typer
 rpds-py==0.20.0
@@ -221,9 +223,9 @@ rpds-py==0.20.0
     # via referencing
 ruamel-yaml==0.18.6
     # via prefect
-ruamel-yaml-clib==0.2.8
+ruamel-yaml-clib==0.2.12
     # via ruamel-yaml
-ruff==0.6.9
+ruff==0.7.1
     # via athlon-flex-notifier
 shellingham==1.5.4
     # via typer
@@ -235,13 +237,13 @@ sniffio==1.3.1
     # via asgi-lifespan
     # via httpx
     # via prefect
-sqlalchemy==2.0.35
+sqlalchemy==2.0.36
     # via alembic
     # via prefect
     # via sqlmodel
 sqlmodel==0.0.22
     # via athlon-flex-notifier
-starlette==0.39.2
+starlette==0.41.2
     # via fastapi
 text-unidecode==1.3
     # via python-slugify
@@ -271,9 +273,9 @@ ujson==5.10.0
 urllib3==2.2.3
     # via docker
     # via requests
-uvicorn==0.31.1
+uvicorn==0.32.0
     # via prefect
 websockets==13.1
     # via prefect
-yarl==1.13.1
+yarl==1.17.0
     # via aiohttp

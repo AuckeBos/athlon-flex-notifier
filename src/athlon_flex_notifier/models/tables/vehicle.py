@@ -1,17 +1,17 @@
-from typing import TYPE_CHECKING, Any, ClassVar, Optional
+from typing import TYPE_CHECKING, Any, ClassVar
+from uuid import UUID
 
 from athlon_flex_api.models.vehicle import Vehicle as VehicleBase
 from sqlmodel import Field, Relationship
 
-from athlon_flex_notifier.models.base_model import BaseModel
+from athlon_flex_notifier.models.tables.base_table import BaseTable
 
 if TYPE_CHECKING:
-    from athlon_flex_notifier.models.option import Option
-    from athlon_flex_notifier.models.vehicle_availability import VehicleAvailability
-    from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
+    from athlon_flex_notifier.models.tables.option import Option
+    from athlon_flex_notifier.models.tables.vehicle_cluster import VehicleCluster
 
 
-class Vehicle(BaseModel, table=True):
+class Vehicle(BaseTable, table=True):
     """Vehicle model.
 
     A Vehicle defines a specific vehicle configuration.
@@ -26,8 +26,7 @@ class Vehicle(BaseModel, table=True):
     """
 
     model_config: ClassVar[dict[str, Any]] = {"protected_namespaces": ()}
-
-    id: str
+    athlon_id: str
     make: str
     model: str
     type: str
@@ -59,7 +58,9 @@ class Vehicle(BaseModel, table=True):
     contribution_in_euro: float | None = None
     expected_fuel_cost_in_euro_per_month: float | None = None
     net_cost_in_euro_per_month: float | None = None
-    vehicle_cluster_key_hash: str | None = Field(foreign_key="vehicle_cluster.key_hash")
+    vehicle_cluster_id: UUID | None = Field(
+        foreign_key="vehicle_cluster.id", nullable=False
+    )
     vehicle_cluster: "VehicleCluster" = Relationship(
         back_populates="vehicles",
         sa_relationship_kwargs={
@@ -70,28 +71,22 @@ class Vehicle(BaseModel, table=True):
         back_populates="vehicle",
         cascade_delete=True,
     )
-    vehicle_availabilities: list["VehicleAvailability"] = Relationship(
-        back_populates="vehicle",
-        cascade_delete=True,
-        sa_relationship_kwargs={
-            "lazy": "joined",
-        },
-    )
 
     @staticmethod
     def business_keys() -> list[str]:
-        return ["id"]
+        return ["athlon_id"]
 
     @classmethod
-    def from_base(
-        cls,
-        vehicle_base: VehicleBase,
-    ) -> "Vehicle":
-        from athlon_flex_notifier.models.option import Option
-        from athlon_flex_notifier.models.vehicle_cluster import VehicleCluster
+    def create_by_api_response(cls, vehicle_base: VehicleBase) -> "Vehicle":
+        """Create a SQLModel instance by an API response.
+
+        Note that the vehicle_cluster_id is not set here. Since it is required in the
+        DB, this property must be set before the vehicle can be upserted.
+        """
+        from athlon_flex_notifier.models.tables.option import Option
 
         data = {
-            "id": vehicle_base.id,
+            "athlon_id": vehicle_base.id,
             "make": vehicle_base.make,
             "model": vehicle_base.model,
             "type": vehicle_base.type,
@@ -105,7 +100,6 @@ class Vehicle(BaseModel, table=True):
             "image_uri": vehicle_base.imageUri,
             "is_electric": vehicle_base.isElectric,
             "uri": vehicle_base.uri,
-            "vehicle_cluster_key_hash": VehicleCluster.compute_key_hash(vehicle_base),
         }
         if vehicle_base.details is not None:
             data = data | {
@@ -142,27 +136,10 @@ class Vehicle(BaseModel, table=True):
         vehicle = Vehicle(**data)
         if vehicle_base.options:
             vehicle.options = [
-                Option.from_base(option_base, vehicle)
+                Option.create_by_api_response(option_base)
                 for option_base in vehicle_base.options
             ]
         return vehicle
-
-    @property
-    def active_availability(self) -> Optional["VehicleAvailability"]:
-        """Return the single active availability for this vehicle.
-
-        If no availability is active, return None.
-        If more than one availability is active, raise ValueError.
-        """
-        availabilities = [
-            availability
-            for availability in self.vehicle_availabilities
-            if availability.is_currently_available
-        ]
-        if len(availabilities) > 1:
-            msg = "There is more than one active availability for this vehicle"
-            raise ValueError(msg)
-        return availabilities[0] if availabilities else None
 
     @property
     def has_active_availability(self) -> bool:

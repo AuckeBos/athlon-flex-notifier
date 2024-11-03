@@ -10,12 +10,12 @@ from dotenv import find_dotenv, load_dotenv
 from kink import di
 from prefect.exceptions import MissingContextError
 from prefect.logging import get_logger, get_run_logger
-from sqlalchemy import create_engine
-from sqlmodel import SQLModel
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import with_loader_criteria
+from sqlalchemy.orm.session import ORMExecuteState
+from sqlmodel import Session, SQLModel
 
-from athlon_flex_notifier.notifications.console_notifier import ConsoleNotifier
-from athlon_flex_notifier.notifications.email_notifier import EmailNotifier
-from athlon_flex_notifier.notifications.notifiers import Notifiers
+from athlon_flex_notifier.models.tables.base_table import BaseTable
 
 
 def load_env() -> None:
@@ -34,9 +34,6 @@ def bootstrap_di() -> None:
     )
     _setup_database()
     di[smtplib.SMTP] = lambda _: _smpt_server()
-    di[Notifiers] = lambda di_: Notifiers(
-        notifiers=[ConsoleNotifier(), EmailNotifier(di_)]
-    )
     # Use factory, to retry getting the prefect logger each time
     di.factories[Logger] = lambda _: _get_logger(__name__)
 
@@ -50,11 +47,24 @@ def _setup_database() -> None:
             host=os.getenv("POSTGRES_HOST"),
             port=os.getenv("POSTGRES_PORT"),
             database=os.getenv("POSTGRES_DB"),
-        ),
+        )
     )
-    import athlon_flex_notifier.models  # noqa: F401
+    import athlon_flex_notifier.models.tables  # noqa: F401
 
     SQLModel.metadata.create_all(di["database"])
+
+
+@event.listens_for(Session, "do_orm_execute")
+def _exclude_inactive(execute_state: ORMExecuteState) -> None:
+    include_inactive = execute_state.execution_options.get("include_inactive", False)
+    if execute_state.is_select and not include_inactive:
+        execute_state.statement = execute_state.statement.options(
+            with_loader_criteria(
+                BaseTable,
+                lambda cls: (not hasattr(cls, "active_to")) or cls.active_to.is_(None),
+                include_aliases=True,
+            )
+        )
 
 
 def _get_logger(name: str) -> logging.Logger:
