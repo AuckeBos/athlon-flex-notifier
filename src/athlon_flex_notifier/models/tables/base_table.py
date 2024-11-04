@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 from datetime import datetime
+from enum import Enum
 from hashlib import sha256
 from typing import ClassVar, TypeVar
 from uuid import UUID, uuid4
@@ -13,6 +14,15 @@ from sqlmodel import Field, Session, SQLModel, func
 T = TypeVar("T", bound="BaseTable")
 
 
+class LoadType(Enum):
+    """Indicates how to upsert a new batch of entities."""
+
+    FULL_LOAD = 1
+    DELTA_WITHOUT_DELETE = 2
+    # Not yet supported
+    DELTA_WITH_DELETE = 3
+
+
 class BaseTable(SQLModel):
     """A Base class for SQLModel.
 
@@ -21,13 +31,50 @@ class BaseTable(SQLModel):
 
     Extends the SQLModel class with additional methods.
 
+    Attributes:
+        LOAD_TYPE: ClassVar[LoadType] = LoadType.FULL_LOAD
+            Defines how a new batch should be processed. Used by
+            Upserter.
+
+        HASH_SEPARATOR: ClassVar[str] = "-"
+            Separates values when computing hashes
+
+        id: UUID
+            Primary key. Generated when instantated.
+        key_hash: str
+            Hash of the business keys. Computed when upserted. Before store in DB,
+            this property is None.
+
+        attribute_hash_scd1: str
+            Hash of the scd1 attributes. Computed when upserted. Before store in DB,
+            this property is None.
+        attribute_hash_scd2: str
+            Hash of the scd2 attributes. Computed when upserted. Before store in DB,
+            this property is None.
+
+        active_from: datetime
+            Start date for scd2. Is required, must be set in Python.
+        active_to: datetime
+            End date for scd2. None upon creation. Set when updated or deleted.
+
+        created_at: datetime
+            Creation date of the record. Set by the server.
+
+        updated_at: datetime
+            Last update date of the record. Auto updated by server.
+
     KNOWN ISSUES:
         - sort_order doesn't work: https://github.com/fastapi/sqlmodel/issues/542
+            Therefor, computed columns are the first instead of the last cols.
             Kept in code, for future reference
         - alias doesn't work: https://github.com/fastapi/sqlmodel/discussions/725
             https://stackoverflow.com/questions/77819208/how-can-i-use-alias-in-sqlmodel-library
-            Removed from code, to prevent unclarity
+            Removed from code, to prevent unclarity. When fixed: Prefix
+            computed cols with _.
+
     """
+
+    LOAD_TYPE: ClassVar[LoadType] = LoadType.FULL_LOAD
 
     HASH_SEPARATOR: ClassVar[str] = "-"
     id: UUID = Field(

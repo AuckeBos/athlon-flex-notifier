@@ -1,10 +1,10 @@
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from sqlalchemy import DateTime, func
 from sqlmodel import Field
 
-from athlon_flex_notifier.models.tables.base_table import BaseTable
+from athlon_flex_notifier.models.tables.base_table import BaseTable, LoadType
 
 if TYPE_CHECKING:
     from athlon_flex_notifier.models.views.vehicle_availability import (
@@ -14,6 +14,9 @@ if TYPE_CHECKING:
 
 class Notification(BaseTable, table=True):
     """A notification of a vehicle becoming available."""
+
+    # Notifications are never updated, and processed as delta (no delete)
+    LOAD_TYPE: ClassVar[LoadType] = LoadType.DELTA_WITHOUT_DELETE
 
     vehicle_key_hash: str
     available_since: datetime = Field(

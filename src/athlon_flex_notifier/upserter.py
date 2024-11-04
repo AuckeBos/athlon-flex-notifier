@@ -8,6 +8,7 @@ from sqlalchemy import Engine, and_, bindparam, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import Session
 
+from athlon_flex_notifier.models.tables.base_table import LoadType
 from athlon_flex_notifier.utils import now
 
 if TYPE_CHECKING:
@@ -99,9 +100,14 @@ class Upserter:
         return [row["key_hash"] for row in self.data]
 
     def scd2(self) -> None:
-        """Update rows in the target in-place with updates of the scd2 attributes."""
+        """Update rows in the target in-place with updates of the scd2 attributes.
+
+        If FULL_LOAD, close entities in target that are not in source.
+
+        """
         self.close_active_rows_of_updated_entities()
-        self.close_active_rows_of_deleted_entities()
+        if self.entity_class.LOAD_TYPE == LoadType.FULL_LOAD:
+            self.close_active_rows_of_deleted_entities()
         self.create_rows_for_updated_and_new_entities()
 
     def close_active_rows_of_updated_entities(self) -> None:
