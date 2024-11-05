@@ -5,7 +5,7 @@ import os
 import smtplib
 from logging import Logger
 
-from athlon_flex_api import AthlonFlexApi
+from athlon_flex_client import AthlonFlexClient
 from dotenv import find_dotenv, load_dotenv
 from kink import di
 from prefect.exceptions import MissingContextError
@@ -25,7 +25,7 @@ def load_env() -> None:
 
 def bootstrap_di() -> None:
     """Setup all dependencies."""  # noqa: D401
-    di[AthlonFlexApi] = lambda _: AthlonFlexApi(
+    di[AthlonFlexClient] = lambda _: AthlonFlexClient(
         email=os.getenv("ATHLON_USERNAME", None),
         password=os.getenv("ATHLON_PASSWORD", None),
         gross_yearly_income=os.getenv("GROSS_YEARLY_INCOME", None),

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from athlon_flex_api.models.vehicle import Vehicle as VehicleBase
+from athlon_flex_client.models.vehicle import Vehicle as VehicleBase
 from sqlmodel import Field, Relationship
 
 from athlon_flex_notifier.models.tables.base_table import BaseTable
