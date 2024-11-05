@@ -1,0 +1,14 @@
+{
+    "firstVehicleId": "eaea219f-f155-497f-52ba-08dbdab64212",
+    "externalTypeId": "a11a5e02-f559-4441-868e-2df14f541361",
+    "make": "BMW",
+    "model": "3 Serie Touring",
+    "latestModelYear": 2022,
+    "vehicleCount": 1,
+    "minPriceInEuroPerMonth": 1010.000000,
+    "fiscalValueInEuro": 54219.00,
+    "additionPercentage": 22.00,
+    "externalFuelTypeId": 0,
+    "maxCO2Emission": 153,
+    "imageUri": "https://services.athlon.com/api/photos/imagin/v2/photo/[#width#]/bmw/3_serie_touring/2022/5cv/"
+}

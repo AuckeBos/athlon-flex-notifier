@@ -1,0 +1,11 @@
+# Notifications
+This wiki describes the notification mechanism. It sends an email to the user as soon as a new vehicle becomes available, or once a day.
+
+# Vehicle availability
+The notification mechanism makes use of view `vw_vehicle_availability`. This view returns one record for each time window a vehicle is available. As soon as a vehicle is leased by someone, it is unavailable, and the record in `vw_vehicle_availability` is closed. When later the Vehicle comes back online, and hence it is a available again, a new record will be shown in `vw_vehicle_availability`. 
+
+# Notification
+The table `notification` registers for which records in `vw_vehicle_availability` a notification has yet been sent. This way, every time the [Notifier](/src/athlon_flex_notifier/notifications/notifier.py) is ran, we only notify about newly available Vehicles. A notification links one-to-one to `vw_vehicle_availability`, with keys `vehicle_key_hash` and `available_since`. `vehicle_id` cannot be used, because a single availability can belong to multiple vehicle versions. 
+
+# Sending notifications
+The [Notifier](/src/athlon_flex_notifier/notifications/notifier.py) first loads [VehicleAvailabilities](/src/athlon_flex_notifier/models/views/vehicle_availability.py) that do not yet have a corresponding notification. It groups them by cluster, such that we can present them this way to the user. The [ConsoleNotifier](/src/athlon_flex_notifier/notifications/console_notifier.py) then simply prints the new availabilities to the console. The [EmailNotifier](/src/athlon_flex_notifier/notifications/email_notifier.py) sends the same information by email; it currently only supports [Google App Passwords](https://developers.google.com/workspace/guides/create-credentials). The [Renderer](/src/athlon_flex_notifier/notifications/email/renderer.py) renders the [Jinja2](https://pypi.org/project/Jinja2/) [email template](/src/athlon_flex_notifier/notifications/email/templates/email.html), and sends it using [smtplib](https://docs.python.org/3/library/smtplib.html). Environment variables `EMAIL_FROM` and `EMAIL_TO` are used for sender and recipient. 
