@@ -1,5 +1,7 @@
-from athlon_flex_api.models.vehicle_cluster import VehicleCluster as VehicleClusterBase
-from athlon_flex_api.models.vehicle_cluster import VehicleClusters
+from athlon_flex_client.models.vehicle_cluster import (
+    VehicleCluster as VehicleClusterBase,
+)
+from athlon_flex_client.models.vehicle_cluster import VehicleClusters
 from kink import inject
 from sqlmodel import Relationship
 
