@@ -56,6 +56,7 @@ class VehicleCluster(BaseTable, table=True):
             "fiscal_value_in_euro",
             "addition_percentage",
             "max_co2_emission",
+            "image_uri",
         ]
 
     @classmethod
