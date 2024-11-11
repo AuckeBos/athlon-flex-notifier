@@ -25,6 +25,10 @@ class Option(BaseTable, table=True):
         return ["athlon_id", "vehicle_id"]
 
     @staticmethod
+    def scd1_attribute_keys() -> list[str]:
+        return ["vehicle_id"]
+
+    @staticmethod
     def create_by_api_response(option_base: VehicleBase.Option) -> "Option":
         """Create a SQLModel instance from an API reponse.
 
