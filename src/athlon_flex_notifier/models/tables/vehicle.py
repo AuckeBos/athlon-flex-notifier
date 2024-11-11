@@ -76,6 +76,10 @@ class Vehicle(BaseTable, table=True):
     def business_keys() -> list[str]:
         return ["athlon_id"]
 
+    @staticmethod
+    def scd1_attribute_keys() -> list[str]:
+        return ["vehicle_cluster_id"]
+
     @classmethod
     def create_by_api_response(cls, vehicle_base: VehicleBase) -> "Vehicle":
         """Create a SQLModel instance by an API response.

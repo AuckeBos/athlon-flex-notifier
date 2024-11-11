@@ -151,6 +151,8 @@ class BaseTable(SQLModel):
         Example: VehicleCluster.first_vehicle_id. Preserving history
         for this key would mean a new version of a cluster whenever
         the first vehicle is leased; this doesn't make any sense.
+
+        Todo: always include all foreign keys in this list.
         """  # noqa: D401
         return []
 
