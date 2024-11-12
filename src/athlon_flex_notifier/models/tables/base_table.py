@@ -56,6 +56,8 @@ class BaseTable(SQLModel):
             Start date for scd2. Is required, must be set in Python.
         active_to: datetime
             End date for scd2. None upon creation. Set when updated or deleted.
+        is_current: bool
+            True if this record is the current record of this entity.
 
         created_at: datetime
             Creation date of the record. Set by the server.
@@ -106,14 +108,17 @@ class BaseTable(SQLModel):
         sa_type=DateTime(timezone=True),
         sa_column_kwargs={"sort_order": 94},
     )
-
+    is_current: bool = Field(
+        default=True,
+        sa_column_kwargs={"sort_order": 95},
+    )
     created_at: datetime | None = Field(
         exclude=True,
         default=None,
         sa_type=DateTime(timezone=True),
         sa_column_kwargs={
             "server_default": func.now(),
-            "sort_order": 95,
+            "sort_order": 96,
         },
     )
     updated_at: datetime | None = Field(
@@ -124,7 +129,7 @@ class BaseTable(SQLModel):
             "onupdate": func.now(),
             "server_default": func.now(),
             "server_onupdate": func.now(),
-            "sort_order": 96,
+            "sort_order": 97,
         },
     )
 
@@ -192,6 +197,7 @@ class BaseTable(SQLModel):
                 "updated_at",
                 "active_from",
                 "active_to",
+                "is_current",
             ]
         )
 

@@ -114,7 +114,8 @@ class Upserter:
         """Close active rows that have changed scd2 attributes.
 
         Closing means setting active_to to the current timestamp.
-        Only close rows where the key_hash still exsits, and the scd2 hash has changed
+        Only close rows where the key_hash still exsits, and the scd2 hash has changed.
+        Also set is_current is False, because a new row will be created.
         """
         keys = ["key_hash", "attribute_hash_scd2"]
         data = [{f"{key}_": row[key] for key in keys} for row in self.data]
@@ -130,6 +131,7 @@ class Upserter:
             )
             .values(
                 active_to=self.timestamp,
+                is_current=False,
             )
             .execution_options(synchronize_session=False)
         )
@@ -139,6 +141,7 @@ class Upserter:
         """Close active rows that have been deleted.
 
         A row is deleted if the key_hash is not in the new data.
+        Do not set is_current=False. It is still the current row.
         """
         new_key_hashes = [row["key_hash"] for row in self.data]
         statement = (
