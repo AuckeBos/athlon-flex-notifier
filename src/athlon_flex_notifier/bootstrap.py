@@ -13,7 +13,7 @@ from prefect.logging import get_logger, get_run_logger
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import with_loader_criteria
 from sqlalchemy.orm.session import ORMExecuteState
-from sqlmodel import Session, SQLModel
+from sqlmodel import Session
 
 from athlon_flex_notifier.models.tables.base_table import BaseTable
 
@@ -38,20 +38,20 @@ def bootstrap_di() -> None:
     di.factories[Logger] = lambda _: _get_logger(__name__)
 
 
+def database_url() -> str:
+    """Get the database URL."""
+    return "postgresql://{username}:{password}@{host}:{port}/{database}".format(
+        username=os.getenv("POSTGRES_USER"),
+        password=os.getenv("POSTGRES_PASSWORD"),
+        host=os.getenv("POSTGRES_HOST"),
+        port=os.getenv("POSTGRES_PORT"),
+        database=os.getenv("POSTGRES_DB"),
+    )
+
+
 def _setup_database() -> None:
     """Setup database connection."""  # noqa: D401
-    di["database"] = create_engine(
-        "postgresql://{username}:{password}@{host}:{port}/{database}".format(
-            username=os.getenv("POSTGRES_USER"),
-            password=os.getenv("POSTGRES_PASSWORD"),
-            host=os.getenv("POSTGRES_HOST"),
-            port=os.getenv("POSTGRES_PORT"),
-            database=os.getenv("POSTGRES_DB"),
-        )
-    )
-    import athlon_flex_notifier.models.tables  # noqa: F401
-
-    SQLModel.metadata.create_all(di["database"])
+    di["database"] = create_engine(database_url())
 
 
 @event.listens_for(Session, "do_orm_execute")
