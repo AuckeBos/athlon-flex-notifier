@@ -24,7 +24,9 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = []
+dev-dependencies = [
+    "alembic>=1.14.0",
+]
 excluded-dependencies = ["pywin32"]
 
 [tool.hatch.metadata]
