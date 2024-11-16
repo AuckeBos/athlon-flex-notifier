@@ -23,17 +23,17 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:  # noqa: D103
     op.add_column(
         "notification",
-        sa.Column("is_current", sa.Boolean(), nullable=False, sort_order=95),
+        sa.Column("is_current", sa.Boolean(), nullable=True, sort_order=95),
     )
     op.add_column(
-        "option", sa.Column("is_current", sa.Boolean(), nullable=False, sort_order=95)
+        "option", sa.Column("is_current", sa.Boolean(), nullable=True, sort_order=95)
     )
     op.add_column(
-        "vehicle", sa.Column("is_current", sa.Boolean(), nullable=False, sort_order=95)
+        "vehicle", sa.Column("is_current", sa.Boolean(), nullable=True, sort_order=95)
     )
     op.add_column(
         "vehicle_cluster",
-        sa.Column("is_current", sa.Boolean(), nullable=False, sort_order=95),
+        sa.Column("is_current", sa.Boolean(), nullable=True, sort_order=95),
     )
 
 
