@@ -14,7 +14,8 @@ RUN apt update && \
 ENV USERNAME=athlon
 USER $USERNAME
 # Copy files
-COPY --chown=athlon:athlon ./pyproject.toml ./requirements.lock ./README.md /home/athlon/
+ADD alembic /home/athlon/alembic
+COPY --chown=athlon:athlon ./alembic.ini ./pyproject.toml ./requirements.lock ./README.md /home/athlon/
 
 # Install deps
 WORKDIR /home/athlon
