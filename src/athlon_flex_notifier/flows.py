@@ -47,6 +47,7 @@ def work() -> None:
             schedules=[
                 CronSchedule(
                     cron="0 6 * * *",
+                    timezone="Europe/Amsterdam",
                 )
             ],
         ),
