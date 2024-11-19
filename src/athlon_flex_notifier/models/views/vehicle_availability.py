@@ -42,16 +42,10 @@ class VehicleAvailability(BaseView):
     @classmethod
     def to_notify(cls) -> list["VehicleAvailability"]:
         """Get all VehicleAvailability for which a notification does not yet exist."""
-        active_vehicle_availabilities = [
-            vehicle_availability
-            for vehicle_availability in cls.all()
-            if vehicle_availability.available_until is None
-        ]
-        notifications = Notification.all()
-        yet_notified = [notification.key_hash for notification in notifications]
+        yet_notified = [notification.key_hash for notification in Notification.all()]
         return [
             availability
-            for availability in active_vehicle_availabilities
+            for availability in cls.all()
             if availability.key_hash not in yet_notified
         ]
 

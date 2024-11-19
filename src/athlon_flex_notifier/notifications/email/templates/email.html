@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>New Vehicles Available</title>
   <style>
@@ -7,54 +8,67 @@
       font-family: Arial, sans-serif;
       text-align: center;
     }
+
     table {
       border-collapse: collapse;
     }
-    th, td {
+
+    th,
+    td {
       border: 1px solid #ddd;
       padding: 8px;
       text-align: left;
     }
+
     th {
       background-color: #f0f0f0;
     }
-    .gray{
+
+    .gray {
       color: gray;
     }
-    h1, p{
+
+    h1,
+    p {
       text-align: left
     }
   </style>
 </head>
+
 <body>
   <h1>New vehicles available</h1>
-  <p>The following vehicles just became available in the <a href="https://flex.athlon.com/app/showroom">Athlon Flex Showroom</a>
-  {% for cluster in renderer.vehicle_clusters %}
-    <h2>{{ cluster.make }} {{ cluster.model }}</h2>
-    <img src="{{ cluster.sized_image_uri(300) }}" alt="Vehicle image">
-    <p><a class="gray" href="{{ cluster.uri }} ">View in showroom</a></p>
-    <table>
-      <tr>
-        <th>Vehicle</th>
-        <th>Fiscal value</th>
-        <th>Price</th>
-        <th>Contribution</th>
-        <th>Net cost</th>
-        <th>Available since</th>
-        <th>Link</th>            
-      </tr>
-      {% for availability in renderer.availabilities_for_cluster(cluster) %}
-        <tr>
-          <td>{{ availability.vehicle }}</td>
-          <td>€{{ renderer.round_or_na(availability.vehicle.fiscal_value_in_euro) }}</td>
-          <td>€{{ renderer.round_or_na(availability.vehicle.calculated_price_in_euro_per_month) }}</td>
-          <td>€{{ renderer.round_or_na(availability.vehicle.contribution_in_euro) }}</td>
-          <td>€{{ renderer.round_or_na(availability.vehicle.net_cost_in_euro_per_month) }}</td>
-          <td>{{ availability.available_since.strftime("%Y-%m-%d %H:%M") }}</td>
-          <td><a href="{{ availability.vehicle.uri }}">View in showroom</a></td>
-        </tr>
-      {% endfor %}
-    </table>
+  <p>The following vehicles just became available in the <a href="https://flex.athlon.com/app/showroom">Athlon Flex
+      Showroom</a>
+    {% for cluster in renderer.vehicle_clusters %}
+  <h2>{{ cluster.make }} {{ cluster.model }}</h2>
+  <img src="{{ cluster.sized_image_uri(300) }}" alt="Vehicle image">
+  <p><a class="gray" href="{{ cluster.uri }} ">View in showroom</a></p>
+  <table>
+    <tr>
+      <th>Vehicle</th>
+      <th>Fiscal value</th>
+      <th>Price</th>
+      <th>Contribution</th>
+      <th>Net cost</th>
+      <th>Available since</th>
+      <th>Available until</th>
+      <th>Link</th>
+    </tr>
+    {% for availability in renderer.availabilities_for_cluster(cluster) %}
+    <tr>
+      <td>{{ availability.vehicle }}</td>
+      <td>€{{ renderer.round_or_na(availability.vehicle.fiscal_value_in_euro) }}</td>
+      <td>€{{ renderer.round_or_na(availability.vehicle.calculated_price_in_euro_per_month) }}</td>
+      <td>€{{ renderer.round_or_na(availability.vehicle.contribution_in_euro) }}</td>
+      <td>€{{ renderer.round_or_na(availability.vehicle.net_cost_in_euro_per_month) }}</td>
+      <td>{{ availability.available_since.strftime("%Y-%m-%d %H:%M") }}</td>
+      <td>{{ availability.available_until.strftime("%Y-%m-%d %H:%M") if availability.available_until is not none else
+        ""}}</td>
+      <td><a href="{{ availability.vehicle.uri }}">View in showroom</a></td>
+    </tr>
+    {% endfor %}
+  </table>
   {% endfor %}
 </body>
+
 </html>
