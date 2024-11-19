@@ -39,7 +39,7 @@ def work() -> None:
             triggers=[
                 DeploymentEventTrigger(
                     name="notify_on_refresh",
-                    enabled=True,
+                    enabled=False,
                     match_related={"prefect.resource.name": "refresh"},
                     expect=["prefect.flow-run.Completed"],
                 )
@@ -47,6 +47,7 @@ def work() -> None:
             schedules=[
                 CronSchedule(
                     cron="0 6 * * *",
+                    timezone="Europe/Amsterdam",
                 )
             ],
         ),
