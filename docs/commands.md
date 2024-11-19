@@ -15,3 +15,6 @@ This page lists some commands often used during development. Some of these will 
     - Build for one architecture: `docker buildx build --platform linux/arm64 -f infrastructure/Dockerfile .`
 
 
+## Other
+- Generate database diagram: `npx pg-mermaid --dbname athlon --username postgres --host localhost --password {password} --port 13001`
+

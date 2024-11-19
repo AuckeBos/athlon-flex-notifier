@@ -1,0 +1,150 @@
+{
+    "id": "eaea219f-f155-497f-52ba-08dbdab64212",
+    "make": "BMW",
+    "model": "3 Serie Touring",
+    "type": "320iA Business Edition 5D 135kW",
+    "modelYear": 2022,
+    "externalPaintId": "P0A96",
+    "externalTypeId": "a11a5e02-f559-4441-868e-2df14f541361",
+    "externalFuelTypeId": 0,
+    "imageUri": "https://services.athlon.com/api/photos/imagin/v2/image/[#width#]/01/bmw/3_serie_touring/2022/5cv/null/null/P0A96",
+    "rangeInKm": 0,
+    "isElectric": false,
+    "details": {
+        "licensePlate": "P-648-SV",
+        "color": "Wit",
+        "officialColor": "Mineralweiß",
+        "bodyType": "Stationwagon",
+        "emission": 153.0,
+        "registrationDate": "2022-06-22T02:00:00+02:00",
+        "registeredMileage": 15987.0,
+        "transmissionType": "Automatisch",
+        "avgFuelConsumption": 6.69999980926514,
+        "typeSpareWheel": "oppompset",
+        "additionPercentage": 22.0
+    },
+    "pricing": {
+        "fiscalValueInEuro": 54219.0,
+        "basePricePerMonthInEuro": 800.0,
+        "calculatedPricePerMonthInEuro": 1010.00,
+        "pricePerKm": 0.09,
+        "fuelPricePerKm": 0.12,
+        "expectedFuelCostPerMonthInEuro": 120.00
+    },
+    "options": [
+        {
+            "id": "7531b0bc-34ce-4bc1-7645-08db6334fbf7",
+            "externalId": "6e09a259-871f-401b-ad4a-cb09ca614699",
+            "optionName": "Airconditioning",
+            "included": true
+        },
+        {
+            "id": "128ea8ce-2fa8-4701-7638-08db6334fbf7",
+            "externalId": "1ee67fdd-8356-4676-a424-35a1dbe0b33f",
+            "optionName": "Armsteun voor",
+            "included": true
+        },
+        {
+            "id": "39c40fc3-548a-467b-763c-08db6334fbf7",
+            "externalId": "68e315b0-959f-4d62-8c4c-f8ad4dd27d93",
+            "optionName": "Automatisch dimmende binnenspiegel",
+            "included": true
+        },
+        {
+            "id": "da9b5421-7bd0-4770-7637-08db6334fbf7",
+            "externalId": "a756f4d0-b421-4558-9226-9582be935eb6",
+            "optionName": "Bluetooth (telefoon)",
+            "included": true
+        },
+        {
+            "id": "4f5b6083-395c-4735-7641-08db6334fbf7",
+            "externalId": "8b3436ba-0dde-4cb5-b6ce-ccc728ffe4d8",
+            "optionName": "Carplay",
+            "included": true
+        },
+        {
+            "id": "e3de7ffa-2307-4f55-7639-08db6334fbf7",
+            "externalId": "02869eeb-2735-49c4-93ee-afe5fdb20dca",
+            "optionName": "Cruise control",
+            "included": true
+        },
+        {
+            "id": "a5545f0f-e30b-4cf5-7633-08db6334fbf7",
+            "externalId": "9954d547-78cf-4983-afd0-06ea9c9e0e0d",
+            "optionName": "Derde zitrij",
+            "included": false
+        },
+        {
+            "id": "f03fdbb8-0149-4ca8-763e-08db6334fbf7",
+            "externalId": "61249c21-26a4-4b03-b232-2e7937bc6f61",
+            "optionName": "Fietsendrager",
+            "included": false
+        },
+        {
+            "id": "9bd49eb6-d0b0-4f35-7643-08db6334fbf7",
+            "externalId": "b6c37444-f431-46a8-b44e-86406bba68be",
+            "optionName": "LED/Xenon verlichting",
+            "included": false
+        },
+        {
+            "id": "59875a8f-36a9-40f8-7635-08db6334fbf7",
+            "externalId": "d024edb1-f8e8-4ac9-8362-fe87066df089",
+            "optionName": "Lichtmetalen velgen",
+            "included": true
+        },
+        {
+            "id": "52f45148-b7f5-49f6-763d-08db6334fbf7",
+            "externalId": "a73146b5-5ce9-4193-9812-be4445592dfa",
+            "optionName": "Metallic lak",
+            "included": true
+        },
+        {
+            "id": "251f0107-e766-431e-7640-08db6334fbf7",
+            "externalId": "ed1264a9-4adc-483c-8874-5d9ef19b3832",
+            "optionName": "Mistlampen voor",
+            "included": true
+        },
+        {
+            "id": "56f24f31-482b-4ea0-7644-08db6334fbf7",
+            "externalId": "a44294ed-e470-4777-99f0-986433bf2ddc",
+            "optionName": "Navigatie via app",
+            "included": false
+        },
+        {
+            "id": "ea6cad6f-037d-4a0a-763a-08db6334fbf7",
+            "externalId": "4246448f-49de-453c-ad29-c8a062826e4a",
+            "optionName": "Navigatiesysteem",
+            "included": true
+        },
+        {
+            "id": "866e7a6a-db8a-4ab8-763f-08db6334fbf7",
+            "externalId": "706a4d2e-11fb-4b9d-9882-e315cf1ceff9",
+            "optionName": "Panoramadak",
+            "included": false
+        },
+        {
+            "id": "9a78eac6-4b59-45c8-7642-08db6334fbf7",
+            "externalId": "4504001e-58f4-4b8b-9547-c0310d2f7d3d",
+            "optionName": "Parkeersensor achter",
+            "included": true
+        },
+        {
+            "id": "01f04cbd-2953-4a6a-763b-08db6334fbf7",
+            "externalId": "3c7a161f-2054-485f-8cab-8bf923e9da43",
+            "optionName": "Parkeersensor voor",
+            "included": true
+        },
+        {
+            "id": "d7bc8ba2-ce78-4961-7636-08db6334fbf7",
+            "externalId": "5e8b051b-448e-4487-b03e-fd758307aa17",
+            "optionName": "Privacy glass",
+            "included": false
+        },
+        {
+            "id": "b21d0f0a-511a-455c-7634-08db6334fbf7",
+            "externalId": "66eb15a1-bd08-49de-b366-8c6a3188fff0",
+            "optionName": "Trekhaak",
+            "included": false
+        }
+    ]
+}
