@@ -2,6 +2,9 @@ from datetime import datetime
 from functools import cached_property
 from hashlib import sha256
 
+from kink import di
+from sqlmodel import Session, select
+
 from athlon_flex_notifier.models.tables.base_table import BaseTable
 from athlon_flex_notifier.models.tables.notification import Notification
 from athlon_flex_notifier.models.tables.vehicle import Vehicle
@@ -33,11 +36,19 @@ class VehicleAvailability(BaseView):
     @cached_property
     def vehicle(self) -> Vehicle:
         """Get the vehicle for this availability."""
-        vehicles = Vehicle.get(key_hashes=[self.vehicle_key_hash])
-        if len(vehicles) != 1:
-            msg = f"Expected 1 vehicle, got {len(vehicles)}"
-            raise ValueError(msg)
-        return vehicles[0]
+        with Session(di["database"]) as session:
+            vehicles = list(
+                session.exec(
+                    select(Vehicle)
+                    .where(Vehicle.key_hash == self.vehicle_key_hash)
+                    .order_by(Vehicle.active_from.desc()),
+                    execution_options={"include_inactive": True},
+                ).unique()
+            )
+            if not vehicles:
+                msg = f"Vehicle not found for key_hash {self.vehicle_key_hash}"
+                raise ValueError(msg)
+            return vehicles[0]
 
     @classmethod
     def to_notify(cls) -> list["VehicleAvailability"]:
