@@ -35,7 +35,7 @@ async-property==0.2.2
     # via athlon-flex-client
 asyncpg==0.30.0
     # via prefect
-athlon-flex-client==1.0.0
+athlon-flex-client==1.0.1
     # via athlon-flex-notifier
 attrs==24.2.0
     # via aiohttp
@@ -157,6 +157,8 @@ pathspec==0.12.1
     # via prefect
 pendulum==3.0.0
     # via prefect
+pkginfo==1.12.0
+    # via athlon-flex-client
 prefect==3.1.0
     # via athlon-flex-notifier
 prometheus-client==0.21.0
