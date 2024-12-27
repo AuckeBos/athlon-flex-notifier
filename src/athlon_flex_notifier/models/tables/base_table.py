@@ -88,6 +88,7 @@ class BaseTable(SQLModel):
     key_hash: str | None = Field(
         default=None,
         sa_column_kwargs={"sort_order": 90},
+        index=True,
     )
     attribute_hash_scd1: str | None = Field(
         default=None,

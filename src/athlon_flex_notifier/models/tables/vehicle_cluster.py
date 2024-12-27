@@ -8,6 +8,7 @@ from sqlmodel import Relationship
 from athlon_flex_notifier.models.tables.base_table import BaseTable
 from athlon_flex_notifier.models.tables.vehicle import Vehicle
 from athlon_flex_notifier.upserter import Upserter
+from athlon_flex_notifier.utils import time_it
 
 
 class VehicleCluster(BaseTable, table=True):
@@ -110,7 +111,8 @@ class VehicleCluster(BaseTable, table=True):
                 for vehicle_cluster in vehicle_cluster_bases.vehicle_clusters
             ]
         }
-        vehicle_clusters_upserted = upserter.upsert(list(vehicle_clusters.values()))
+        with time_it("Upserting clusters"):
+            vehicle_clusters_upserted = upserter.upsert(list(vehicle_clusters.values()))
         # set the correct vehicle_cluster_id on the vehicles
         vehicles = {}
         for cluster_key_hash, cluster in vehicle_clusters.items():
@@ -119,14 +121,16 @@ class VehicleCluster(BaseTable, table=True):
                     cluster_key_hash
                 ].id
                 vehicles[vehicle.compute_key_hash()] = vehicle
-        vehicles_upserted = upserter.upsert(list(vehicles.values()))
+        with time_it("Upserting vehicles"):
+            vehicles_upserted = upserter.upsert(list(vehicles.values()))
         # set the correct vehicle_id on the options
         options = []
         for vehicle_key_hash, vehicle in vehicles.items():
             for option in vehicle.options:
                 option.vehicle_id = vehicles_upserted[vehicle_key_hash].id
                 options.append(option)
-        upserter.upsert(list(options))
+        with time_it("Upserting options"):
+            upserter.upsert(list(options))
         return VehicleCluster.all()
 
     @property

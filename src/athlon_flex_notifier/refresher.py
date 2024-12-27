@@ -33,5 +33,4 @@ class Refresher:
                 detail_level=DetailLevel.INCLUDE_VEHICLE_DETAILS,
                 filter_=AllVehicleClusters(),
             )
-        with time_it("Upserting clusters"):
-            VehicleCluster.store_api_response(base_clusters)
+        VehicleCluster.store_api_response(base_clusters)
