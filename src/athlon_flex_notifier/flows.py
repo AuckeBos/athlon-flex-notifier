@@ -2,14 +2,11 @@ from kink import di
 from prefect import flow, serve
 from prefect.client.schemas.schedules import CronSchedule
 from prefect.events import DeploymentEventTrigger
-from logging import Logger
 
 from athlon_flex_notifier.notifications.notifiers import Notifiers
 from athlon_flex_notifier.refresher import (
     Refresher,
 )
-from athlon_flex_notifier.services.filter_service import FilterService
-from pydantic import ValidationError
 
 
 @flow
@@ -19,17 +16,17 @@ def refresh() -> None:
 
 
 @flow
-def notify(filter_parameters: dict | None = None) -> None:
-    """Notify the user about new vehicles."""
-    logger = di[Logger]
-    if filter_parameters:
-        logger.info(f"Filter parameters provided: {filter_parameters}")
-        try:
-            FilterService.validate_filter_parameters(filter_parameters)
-        except ValidationError as e:
-            logger.error(f"Invalid filter parameters: {e}")
-            return
-    di[Notifiers](filter_parameters=filter_parameters).notify()
+def notify(filters: dict | None = None) -> None:
+    """Notify the user about new vehicles.
+
+    Parameters
+    ----------
+    filters : dict, optional
+        Optional filters to apply to the vehicles. Keys must be present in the Vehicle.
+        Values will be filtered using regex.
+
+    """
+    Notifiers(filters=filters).notify()
 
 
 def work() -> None:

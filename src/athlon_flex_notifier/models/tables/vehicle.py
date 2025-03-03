@@ -5,7 +5,6 @@ from athlon_flex_client.models.vehicle import Vehicle as VehicleBase
 from sqlmodel import Field, Relationship
 
 from athlon_flex_notifier.models.tables.base_table import BaseTable
-from pydantic.schema import schema
 
 if TYPE_CHECKING:
     from athlon_flex_notifier.models.tables.option import Option
@@ -156,8 +155,3 @@ class Vehicle(BaseTable, table=True):
 
     def __str__(self) -> str:
         return f"{self.make} {self.model} {self.color} {self.model_year}"
-
-    @staticmethod
-    def to_json_schema() -> dict:
-        """Convert the Vehicle model to a JSON schema."""
-        return schema([Vehicle], ref_prefix="#/components/schemas/")["definitions"]["Vehicle"]

@@ -9,24 +9,31 @@ from athlon_flex_notifier.models.views.vehicle_availability import VehicleAvaila
 from athlon_flex_notifier.notifications.console_notifier import ConsoleNotifier
 from athlon_flex_notifier.notifications.email_notifier import EmailNotifier
 from athlon_flex_notifier.notifications.notifier import Notifier
-from athlon_flex_notifier.upserter import Upserter
 from athlon_flex_notifier.services.filter_service import FilterService
+from athlon_flex_notifier.upserter import Upserter
 
 
-@inject
 class Notifiers:
     """Run multiple notifiers, and mark all notified."""
 
     notifiers: list[Notifier]
     logger: Logger
     upserter: Upserter
-    filter_parameters: dict | None
+    filter_service: FilterService
+    filters: dict | None
 
     @inject
-    def __init__(self, logger: Logger, upserter: Upserter, filter_parameters: dict | None = None) -> None:
+    def __init__(
+        self,
+        logger: Logger,
+        upserter: Upserter,
+        filter_service: FilterService,
+        filters: dict | None = None,
+    ) -> "Notifiers":
         self.logger = logger
         self.upserter = upserter
-        self.filter_parameters = filter_parameters
+        self.filter_service = filter_service
+        self.filters = filters
 
     def notify(self) -> bool:
         if not self.vehicle_clusters:
@@ -54,21 +61,23 @@ class Notifiers:
 
     @cached_property
     def vehicle_clusters(self) -> list[VehicleCluster]:
-        clusters = list(
+        return list(
             {
                 availability.vehicle.vehicle_cluster.key_hash: availability.vehicle.vehicle_cluster  # noqa: E501
                 for availability in self.availabilities_to_notify
             }.values()
         )
-        if self.filter_parameters:
-            clusters = FilterService.filter_vehicle_clusters(clusters, self.filter_parameters.get("vehicle_cluster", {}))
-        return clusters
 
     @cached_property
     def availabilities_to_notify(self) -> list[VehicleAvailability]:
         availabilities = VehicleAvailability.to_notify()
-        if self.filter_parameters:
-            vehicles = [availability.vehicle for availability in availabilities]
-            filtered_vehicles = FilterService.filter_vehicles(vehicles, self.filter_parameters.get("vehicle", {}))
-            availabilities = [availability for availability in availabilities if availability.vehicle in filtered_vehicles]
-        return availabilities
+        filtered_availabilities = self.filter_service.filter_vehicle_availabilities(
+            availabilities, self.filters
+        )
+        if len(availabilities) != len(filtered_availabilities):
+            self.logger.debug(
+                "Filtered %s vehicle availabilities out of %s",
+                len(availabilities) - len(filtered_availabilities),
+                len(availabilities),
+            )
+        return filtered_availabilities

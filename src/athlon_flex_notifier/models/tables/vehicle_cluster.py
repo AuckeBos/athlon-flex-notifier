@@ -9,8 +9,6 @@ from athlon_flex_notifier.models.tables.base_table import BaseTable
 from athlon_flex_notifier.models.tables.vehicle import Vehicle
 from athlon_flex_notifier.upserter import Upserter
 from athlon_flex_notifier.utils import time_it
-from pydantic import BaseModel
-from pydantic.schema import schema
 
 
 class VehicleCluster(BaseTable, table=True):
@@ -145,8 +143,3 @@ class VehicleCluster(BaseTable, table=True):
 
     def __str__(self) -> str:
         return f"{self.make} {self.model}"
-
-    @staticmethod
-    def to_json_schema() -> dict:
-        """Convert the VehicleCluster model to a JSON schema."""
-        return schema([VehicleCluster], ref_prefix="#/components/schemas/")["definitions"]["VehicleCluster"]
