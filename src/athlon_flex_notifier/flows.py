@@ -16,9 +16,17 @@ def refresh() -> None:
 
 
 @flow
-def notify() -> None:
-    """Notify the user about new vehicles."""
-    di[Notifiers].notify()
+def notify(filters: dict | None = None) -> None:
+    """Notify the user about new vehicles.
+
+    Parameters
+    ----------
+    filters : dict, optional
+        Optional filters to apply to the vehicles. Keys must be present in the Vehicle.
+        Values will be filtered using regex.
+
+    """
+    Notifiers(filters=filters).notify()
 
 
 def work() -> None:

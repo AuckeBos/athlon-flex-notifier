@@ -16,6 +16,7 @@ from sqlalchemy.orm.session import ORMExecuteState
 from sqlmodel import Session
 
 from athlon_flex_notifier.models.tables.base_table import BaseTable
+from athlon_flex_notifier.services.filter_service import FilterService
 
 
 def load_env() -> None:
@@ -36,6 +37,7 @@ def bootstrap_di() -> None:
     di[smtplib.SMTP] = lambda _: _smpt_server()
     # Use factory, to retry getting the prefect logger each time
     di.factories[Logger] = lambda _: _get_logger(__name__)
+    di[FilterService] = lambda _: FilterService()
 
 
 def database_url() -> str:
@@ -73,6 +75,7 @@ def _get_logger(name: str) -> logging.Logger:
     If we can get the prefect logger (we are running in a prefect flow), use it
     If not, create a new logger.
     """
+    logging.basicConfig(level=logging.DEBUG)
     try:
         logger = get_run_logger()
     except MissingContextError:
