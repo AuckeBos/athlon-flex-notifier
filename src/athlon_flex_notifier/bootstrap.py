@@ -75,6 +75,7 @@ def _get_logger(name: str) -> logging.Logger:
     If we can get the prefect logger (we are running in a prefect flow), use it
     If not, create a new logger.
     """
+    logging.basicConfig(level=logging.DEBUG)
     try:
         logger = get_run_logger()
     except MissingContextError:
